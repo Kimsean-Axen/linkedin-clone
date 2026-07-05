@@ -41,6 +41,23 @@ def _send_verification_email(user, code):
         f'If you did not create an account, you can ignore this email.\n\n'
         f'— LinkedIn Clone'
     )
+    logger.info('Attempting to send verification email to %s via Brevo', user.email)
+    response = requests.post(
+        'https://api.brevo.com/v3/smtp/email',
+        headers={
+            'api-key': django_settings.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+        },
+        json={
+            'sender': {'name': 'LinkedIn Clone', 'email': 'officialkimsean657@gmail.com'},
+            'to': [{'email': user.email}],
+            'subject': subject,
+            'textContent': body,
+        },
+        timeout=15,
+    )
+    logger.info('Brevo response: %s %s', response.status_code, response.text)
+    )
     logger.info('Attempting to send verification email to %s via %s',
                 user.email, django_settings.EMAIL_BACKEND)
     requests.post(
