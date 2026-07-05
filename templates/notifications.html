@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Notifications — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div style="background:var(--bg-card,#fff);border:1px solid var(--border,#e0e0e0);border-radius:10px;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border,#e0e0e0);">
+        <h5 style="margin:0;font-weight:700;font-size:17px;color:var(--text-primary,#191919);">Notifications</h5>
+        <p style="margin:2px 0 0;font-size:12px;color:#999;">Tip: right-click a notification to dismiss it.</p>
+      </div>
+
+      <div style="padding:10px;display:flex;flex-direction:column;gap:8px;" id="notif-list">
+        {% for notif in notifs %}
+        <div class="notif-row" data-notif-id="{{ notif.id }}" style="position:relative;">
+          <a href="{{ notif.link }}" class="notif-card {% if not notif.is_read %}unread{% endif %}" style="cursor:pointer;">
+            <div style="position:relative;flex-shrink:0;">
+              {% if notif.sender.profile.profile_picture %}
+                <img src="{{ notif.sender.profile.profile_picture.url }}" class="av rounded-circle" style="width:48px;height:48px;">
+              {% else %}
+                <span class="av av-md">{{ notif.sender.first_name.0|upper }}{{ notif.sender.last_name.0|upper }}</span>
+              {% endif %}
+              <div style="position:absolute;bottom:-4px;right:-4px;width:22px;height:22px;
+                {% if notif.notification_type == 'like' %}background:#0a66c2;
+                {% elif notif.notification_type == 'comment' %}background:#057642;
+                {% elif notif.notification_type == 'connection' %}background:#c37d16;
+                {% elif notif.notification_type == 'connection_accepted' %}background:#057642;
+                {% elif notif.notification_type == 'message' %}background:#0a66c2;
+                {% else %}background:#555;{% endif %}
+                border:2px solid var(--bg-card,#fff);border-radius:50%;font-size:10px;color:#fff;display:flex;align-items:center;justify-content:center;">
+                {% if notif.notification_type == 'like' %}<i class="bi bi-hand-thumbs-up-fill"></i>
+                {% elif notif.notification_type == 'comment' %}<i class="bi bi-chat-fill"></i>
+                {% elif notif.notification_type == 'connection' %}<i class="bi bi-person-plus-fill"></i>
+                {% elif notif.notification_type == 'connection_accepted' %}<i class="bi bi-people-fill"></i>
+                {% elif notif.notification_type == 'message' %}<i class="bi bi-envelope-fill"></i>
+                {% elif notif.notification_type == 'job_application' %}<i class="bi bi-briefcase-fill"></i>
+                {% endif %}
+              </div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <p style="margin:0;font-size:14px;color:var(--text-primary,#191919);line-height:1.5;">{{ notif.message }}</p>
+              <span style="font-size:12px;color:var(--text-muted,#999);">{{ notif.created_at|timesince }} ago</span>
+            </div>
+            {% if not notif.is_read %}<div style="width:10px;height:10px;border-radius:50%;background:#0a66c2;flex-shrink:0;margin-top:6px;"></div>{% endif %}
+          </a>
+          <form method="post" action="{% url 'delete_notification' notif_id=notif.id %}" class="notif-delete-form" style="display:none;">{% csrf_token %}</form>
+        </div>
+        {% empty %}
+        <div style="text-align:center;padding:64px 24px;">
+          <i class="bi bi-bell" style="font-size:48px;color:#ccc;"></i>
+          <p style="color:var(--text-secondary,#999);font-size:16px;font-weight:600;margin-top:12px;">No notifications yet</p>
+          <p style="color:var(--text-muted,#bbb);font-size:14px;">When people interact with your posts or profile, you'll see it here</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Right-click context menu -->
+<div id="notif-context-menu"
+     style="display:none;position:fixed;z-index:2000;background:#fff;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);min-width:180px;overflow:hidden;">
+  <button type="button" id="notif-context-delete"
+          style="width:100%;text-align:left;padding:10px 14px;background:#fff;border:none;color:#d11a2a;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+    <i class="bi bi-trash"></i> Delete notification
+  </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const menu = document.getElementById('notif-context-menu');
+  const btn  = document.getElementById('notif-context-delete');
+  let activeRow = null;
+
+  document.querySelectorAll('.notif-row').forEach(function(row) {
+    row.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      activeRow = row;
+      menu.style.display = 'block';
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const rect = menu.getBoundingClientRect();
+      const w = rect.width || 180, h = rect.height || 44;
+      menu.style.left = Math.min(e.clientX, vw - w - 4) + 'px';
+      menu.style.top  = Math.min(e.clientY, vh - h - 4) + 'px';
+    });
+  });
+
+  btn.addEventListener('click', function() {
+    if (!activeRow) return;
+    const form = activeRow.querySelector('.notif-delete-form');
+    if (form) form.submit();
+  });
+
+  document.addEventListener('click',   function(){ menu.style.display = 'none'; });
+  document.addEventListener('scroll',  function(){ menu.style.display = 'none'; }, true);
+  window.addEventListener('resize',    function(){ menu.style.display = 'none'; });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') menu.style.display = 'none'; });
+})();
+</script>
+{% endblock %}

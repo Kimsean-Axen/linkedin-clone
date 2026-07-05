@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% block title %}Edit Profile — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+      {% if user_profile.profile_picture %}
+        <img src="{{ user_profile.profile_picture.url }}" class="av rounded-circle border border-3 border-white" style="width:56px;height:56px;">
+      {% else %}
+        <span class="av av-md">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</span>
+      {% endif %}
+      <div>
+        <h4 style="font-size:20px;font-weight:700;margin:0;">Edit Profile</h4>
+        <p style="font-size:13px;color:#666;margin:0;">Keep your profile up to date — one Save at the bottom.</p>
+      </div>
+    </div>
+
+    <!-- SINGLE FORM wrapping every section -->
+    <form method="post" enctype="multipart/form-data" id="editProfileForm">
+      {% csrf_token %}
+      <input type="hidden" name="save_all" value="1">
+
+      <!-- Basic Info Card -->
+      <div class="section-card mb-3">
+        <div class="section-title">Basic Information</div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">First Name</label>
+            <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Last Name</label>
+            <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" value="{{ user.email }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Headline</label>
+          <input type="text" name="headline" class="form-control" value="{{ user_profile.headline }}" placeholder="e.g. Software Engineer at Google">
+          <div class="form-text">Appears below your name and in search results</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">About</label>
+          <textarea name="bio" class="form-control" rows="5" placeholder="Tell your professional story…">{{ user_profile.bio }}</textarea>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Location</label>
+            <input type="text" name="location" class="form-control" value="{{ user_profile.location }}" placeholder="e.g. San Francisco, CA">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Website</label>
+            <input type="url" name="website" class="form-control" value="{{ user_profile.website }}" placeholder="https://yoursite.com">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" name="phone_number" class="form-control" value="{{ user_profile.phone_number }}" placeholder="e.g. +1 (555) 000-0000">
+            <div class="form-text">Visible only to you and your connections</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Public Contact Email</label>
+            <input type="email" name="contact_email" class="form-control" value="{{ user_profile.contact_email }}" placeholder="e.g. contact@yourname.com">
+            <div class="form-text">Can differ from your login email</div>
+          </div>
+        </div>
+
+        <!-- Profile Picture -->
+        <div class="mb-3">
+          <label class="form-label">Profile Picture</label>
+          {% if user_profile.profile_picture %}
+          <div class="upload-preview mb-2">
+            <img src="{{ user_profile.profile_picture.url }}" class="rounded-circle" style="width:72px;height:72px;object-fit:cover;">
+            <div class="flex-grow-1">
+              <div style="font-weight:600;font-size:14px;color:var(--text-primary,#191919);">Current photo</div>
+              <div style="font-size:12px;color:var(--text-muted,#999);">JPG, PNG, or WebP</div>
+            </div>
+            <div class="d-flex flex-column gap-1">
+              <label for="profilePicInput" class="btn btn-outline-primary btn-sm"><i class="bi bi-camera"></i> Change</label>
+            </div>
+          </div>
+          {% else %}
+          <label for="profilePicInput" class="upload-tile" style="max-width:340px;">
+            <i class="bi bi-person-circle"></i>
+            <div style="font-weight:600;font-size:14px;color:var(--text-primary,#191919);">Upload profile picture</div>
+            <small>Square image · at least 400×400px · JPG/PNG</small>
+          </label>
+          {% endif %}
+          <input type="file" name="profile_picture" id="profilePicInput" accept="image/*" style="display:none;" onchange="previewProfilePic(this)">
+          <div id="profilePicPreview" style="display:none;margin-top:10px;"></div>
+        </div>
+
+        <!-- Cover Photo -->
+        <div class="mb-3">
+          <label class="form-label">Cover Photo</label>
+          {% if user_profile.cover_photo %}
+          <div class="mb-2">
+            <img src="{{ user_profile.cover_photo.url }}" class="img-fluid rounded" style="max-height:140px;width:100%;object-fit:cover;">
+            <div class="d-flex gap-2 mt-2">
+              <label for="coverPhotoInput" class="btn btn-outline-primary btn-sm"><i class="bi bi-image"></i> Change cover</label>
+            </div>
+          </div>
+          {% else %}
+          <label for="coverPhotoInput" class="upload-tile">
+            <i class="bi bi-image"></i>
+            <div style="font-weight:600;font-size:14px;color:var(--text-primary,#191919);">Upload cover photo</div>
+            <small>Recommended 1584×396px · 4:1 ratio</small>
+          </label>
+          {% endif %}
+          <input type="file" name="cover_photo" id="coverPhotoInput" accept="image/*" style="display:none;" onchange="previewCoverPhoto(this)">
+          <div id="coverPhotoPreview" style="display:none;margin-top:10px;"></div>
+        </div>
+
+        <!-- Extra personal links (multi) -->
+        <div class="mb-2">
+          <label class="form-label">Extra links <span style="font-size:12px;font-weight:400;color:var(--text-muted,#999);">(website, portfolio, Telegram, WhatsApp…)</span></label>
+          <div id="profile-links-wrap">
+            {% for link in profile_links %}
+            <div class="input-group mb-2">
+              <input type="text" name="link_label" class="form-control" placeholder="Label" value="{{ link.label }}" style="max-width:180px;">
+              <input type="text" name="link_url" class="form-control" placeholder="https://…" value="{{ link.url }}">
+              <button type="button" class="btn btn-outline-secondary" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="addProfileLink()" style="border-radius:20px;">
+            <i class="bi bi-plus-circle me-1"></i> Add link
+          </button>
+        </div>
+      </div>
+
+      <!-- Experience -->
+      <div class="section-card mb-3">
+        <div class="section-title">Experience</div>
+        {% for exp in experiences %}
+        <div class="exp-item">
+          <div class="exp-icon"><i class="bi bi-building"></i></div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">{{ exp.title }}</div>
+            <div style="font-size:13px;color:#555;">{{ exp.company }}{% if exp.location %} · {{ exp.location }}{% endif %}</div>
+            <div style="font-size:12px;color:#999;">{{ exp.start_date|date:"b Y" }} – {% if exp.current %}Present{% else %}{{ exp.end_date|date:"b Y" }}{% endif %}</div>
+            {% if exp.description %}<div style="font-size:13px;color:#555;margin-top:4px;">{{ exp.description|truncatechars:120 }}</div>{% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <p style="color:#999;font-size:14px;margin-bottom:16px;">No experience added yet.</p>
+        {% endfor %}
+
+        <div class="add-section-form">
+          <p style="font-weight:700;font-size:14px;margin-bottom:14px;color:#191919;">+ Add Experience <span style="font-weight:400;font-size:12px;color:#999;">(optional — fill in to add on save)</span></p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Job title</label>
+              <input type="text" name="exp_title" class="form-control" placeholder="e.g. Software Engineer">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Company</label>
+              <input type="text" name="exp_company" class="form-control" placeholder="e.g. Google">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Location</label>
+              <input type="text" name="exp_location" class="form-control" placeholder="e.g. San Francisco, CA">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Start date</label>
+              <input type="date" name="exp_start_date" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">End date</label>
+              <input type="date" name="exp_end_date" class="form-control" id="endDateInput">
+            </div>
+            <div class="col-12">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" name="exp_current" id="currentJob" onchange="document.getElementById('endDateInput').disabled=this.checked" style="width:auto;">
+                <label for="currentJob" style="font-size:13px;cursor:pointer;margin:0;font-weight:500;">I currently work here</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea name="exp_description" class="form-control" rows="3" placeholder="Describe your role and achievements…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Education -->
+      <div class="section-card mb-3">
+        <div class="section-title">Education</div>
+        {% for edu in educations %}
+        <div class="exp-item">
+          <div class="exp-icon"><i class="bi bi-mortarboard"></i></div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">{{ edu.school }}</div>
+            <div style="font-size:13px;color:#555;">{{ edu.degree }}{% if edu.field_of_study %} · {{ edu.field_of_study }}{% endif %}</div>
+            <div style="font-size:12px;color:#999;">{{ edu.start_year }} – {% if edu.end_year %}{{ edu.end_year }}{% else %}Present{% endif %}</div>
+          </div>
+        </div>
+        {% empty %}
+        <p style="color:#999;font-size:14px;margin-bottom:16px;">No education added yet.</p>
+        {% endfor %}
+
+        <div class="add-section-form">
+          <p style="font-weight:700;font-size:14px;margin-bottom:14px;color:#191919;">+ Add Education <span style="font-weight:400;font-size:12px;color:#999;">(optional)</span></p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">School / University</label>
+              <input type="text" name="edu_school" class="form-control" placeholder="e.g. Harvard University">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Degree</label>
+              <input type="text" name="edu_degree" class="form-control" placeholder="e.g. Bachelor of Science">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Field of study</label>
+              <input type="text" name="edu_field_of_study" class="form-control" placeholder="e.g. Computer Science">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Start year</label>
+              <input type="number" name="edu_start_year" class="form-control" placeholder="2018" min="1950" max="2030">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">End year</label>
+              <input type="number" name="edu_end_year" class="form-control" placeholder="2022" min="1950" max="2030">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills -->
+      <div class="section-card mb-3">
+        <div class="section-title">Skills</div>
+        {% if skills %}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+          {% for skill in skills %}
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#dce6f1;color:#0a66c2;border-radius:20px;font-size:13px;font-weight:500;">
+            {{ skill.name }}
+          </span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:#999;font-size:14px;margin-bottom:16px;">No skills added yet.</p>
+        {% endif %}
+
+        <div class="add-section-form">
+          <p style="font-weight:700;font-size:14px;margin-bottom:12px;color:#191919;">+ Add a Skill <span style="font-weight:400;font-size:12px;color:#999;">(comma-separated for multiple)</span></p>
+          <input type="text" name="new_skill" class="form-control" placeholder="e.g. Python, Leadership, Adobe Photoshop…" style="max-width:340px;">
+        </div>
+      </div>
+
+      <!-- Single Save button for the entire form -->
+      <div class="section-card mb-5" style="position:sticky;bottom:0;z-index:10;">
+        <div class="d-flex gap-2 justify-content-end">
+          <a href="{% url 'profile' user_id=request.user.id %}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary px-5">Save all changes</button>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addProfileLink(label, url) {
+  const wrap = document.getElementById('profile-links-wrap');
+  const row = document.createElement('div');
+  row.className = 'input-group mb-2';
+  row.innerHTML = `
+    <input type="text" name="link_label" class="form-control" placeholder="Label" value="${label||''}" style="max-width:180px;">
+    <input type="text" name="link_url" class="form-control" placeholder="https://…" value="${url||''}">
+    <button type="button" class="btn btn-outline-secondary" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+  `;
+  wrap.appendChild(row);
+}
+
+function previewProfilePic(input) {
+  const box = document.getElementById('profilePicPreview');
+  const f = input.files && input.files[0];
+  if (!f) { box.style.display='none'; return; }
+  const url = URL.createObjectURL(f);
+  box.innerHTML = '<div class="upload-preview"><img src="'+url+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;"><div style="flex:1;"><div style="font-weight:600;">'+f.name+'</div><div style="font-size:12px;color:var(--text-muted);">Ready to save</div></div></div>';
+  box.style.display='block';
+}
+
+function previewCoverPhoto(input) {
+  const box = document.getElementById('coverPhotoPreview');
+  const f = input.files && input.files[0];
+  if (!f) { box.style.display='none'; return; }
+  const url = URL.createObjectURL(f);
+  box.innerHTML = '<img src="'+url+'" class="img-fluid rounded" style="max-height:140px;width:100%;object-fit:cover;">';
+  box.style.display='block';
+}
+</script>
+{% endblock %}

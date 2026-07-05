@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Post a Job — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="section-card" style="padding:36px 40px;">
+
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#0a66c2,#004182);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="bi bi-briefcase-fill" style="font-size:24px;color:#fff;"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold" style="font-size:22px;">Post a Job</h4>
+          <p class="mb-0" style="font-size:13px;color:var(--text-muted,#666);">Fill in the details below to attract great candidates.</p>
+        </div>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+
+          <div class="col-12">
+            <label class="form-label">Job Title <span style="color:#cc1016;">*</span></label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. Senior Software Engineer" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Company <span style="color:#cc1016;">*</span></label>
+            <input type="text" name="company" class="form-control" placeholder="Company name" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Location <span style="color:#cc1016;">*</span></label>
+            <input type="text" name="location" class="form-control" placeholder="e.g. San Francisco, CA or Remote" required>
+          </div>
+
+          <!-- Multi-select Job Type -->
+          <div class="col-12">
+            <label class="form-label fw-semibold">Job Type <span style="font-size:12px;font-weight:400;color:var(--text-muted,#999);">(select all that apply)</span></label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              {% for value, label in job_type_choices %}
+              <div>
+                <input type="checkbox" name="job_types" value="{{ value }}" id="jt_{{ value }}" class="btn-check">
+                <label for="jt_{{ value }}" class="btn btn-outline-secondary" style="border-radius:20px;padding:5px 14px;font-size:13px;">{{ label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Multi-select Experience Level -->
+          <div class="col-12">
+            <label class="form-label fw-semibold">Experience Level <span style="font-size:12px;font-weight:400;color:var(--text-muted,#999);">(select all that apply)</span></label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              {% for value, label in experience_choices %}
+              <div>
+                <input type="checkbox" name="experience_levels" value="{{ value }}" id="el_{{ value }}" class="btn-check">
+                <label for="el_{{ value }}" class="btn btn-outline-secondary" style="border-radius:20px;padding:5px 14px;font-size:13px;">{{ label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Salary — Min, Max, and Negotiable can ALL be set at once -->
+          <div class="col-12">
+            <label class="form-label">Salary Range <span style="font-size:12px;font-weight:400;color:var(--text-muted,#999);">(optional)</span></label>
+            <div class="row g-2 align-items-start">
+              <div class="col-5">
+                <div class="input-group">
+                  <span class="input-group-text" style="font-weight:600;">$</span>
+                  <input type="number" name="salary_min" class="form-control" placeholder="e.g. 80000" min="0" id="sal-min">
+                </div>
+                <div class="form-text">Minimum</div>
+              </div>
+              <div class="col-5">
+                <div class="input-group">
+                  <span class="input-group-text" style="font-weight:600;">$</span>
+                  <input type="number" name="salary_max" class="form-control" placeholder="e.g. 120000" min="0" id="sal-max">
+                </div>
+                <div class="form-text">Maximum</div>
+              </div>
+              <div class="col-2">
+                <div class="form-check mt-2">
+                  <input type="checkbox" name="salary_negotiable" id="sal-neg" class="form-check-input" value="1">
+                  <label for="sal-neg" class="form-check-label" style="font-size:13px;font-weight:500;">Negotiable</label>
+                </div>
+              </div>
+            </div>
+            <p class="form-text mt-1" style="color:var(--text-muted,#999);">Enter the actual dollar amount — e.g. <strong>80000</strong> for $80,000/yr. You can set a salary range AND mark it negotiable.</p>
+          </div>
+
+          <!-- Contact / Apply Links (multiple allowed) -->
+          <div class="col-12">
+            <label class="form-label">Contact / Apply Links <span style="font-size:12px;font-weight:400;color:var(--text-muted,#999);">(add as many as you need — Phone, WhatsApp, Telegram, website…)</span></label>
+            <div id="contact-links-wrap"></div>
+            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addContactLink()" style="border-radius:20px;">
+              <i class="bi bi-plus-circle me-1"></i> Add another link
+            </button>
+            <p class="form-text">Each row becomes a clickable "message me" button on the job post.</p>
+          </div>
+
+
+          <div class="col-12">
+            <label class="form-label">Job Description <span style="color:#cc1016;">*</span></label>
+            <textarea name="description" class="form-control" rows="7"
+                      placeholder="Describe the role, responsibilities, and company culture…" required></textarea>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Requirements</label>
+            <textarea name="requirements" class="form-control" rows="4"
+                      placeholder="Skills, qualifications, and experience required…"></textarea>
+          </div>
+
+          <div class="col-12 d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary px-5" style="border-radius:24px;height:44px;">
+              <i class="bi bi-plus-circle me-1"></i> Post Job
+            </button>
+            <a href="{% url 'jobs' %}" class="btn btn-outline-secondary" style="border-radius:24px;height:44px;">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tips sidebar -->
+  <div class="col-lg-4 d-none d-lg-block">
+    <div class="section-card" style="background:#f8faff;border-color:#d0e1f9;">
+      <div style="font-size:15px;font-weight:700;color:#0a66c2;margin-bottom:12px;"><i class="bi bi-lightbulb me-2"></i>Tips for a great job post</div>
+      <ul style="font-size:13px;color:var(--text-secondary,#444);padding-left:18px;line-height:1.8;margin:0;">
+        <li>Use a clear, specific job title</li>
+        <li>Include exact salary range — posts with salary get 2× more applies</li>
+        <li>Add a contact link (Telegram/WhatsApp) so candidates can reach you directly</li>
+        <li>List your top 5–7 requirements (not a wish list)</li>
+        <li>Describe the day-to-day work, not just responsibilities</li>
+        <li>Mention remote / hybrid / on-site clearly</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addContactLink(label, url) {
+  const wrap = document.getElementById('contact-links-wrap');
+  const row = document.createElement('div');
+  row.className = 'input-group mb-2';
+  row.innerHTML = `
+    <input type="text" name="contact_link_label" class="form-control" placeholder="Label (e.g. WhatsApp)" value="${label||''}" style="max-width:180px;">
+    <input type="text" name="contact_link_url" class="form-control" placeholder="https://... or tel:+855... or mailto:..." value="${url||''}">
+    <button type="button" class="btn btn-outline-secondary" onclick="this.parentElement.remove()" title="Remove"><i class="bi bi-x-lg"></i></button>
+  `;
+  wrap.appendChild(row);
+}
+// Start with one empty row.
+addContactLink();
+</script>
+{% endblock %}

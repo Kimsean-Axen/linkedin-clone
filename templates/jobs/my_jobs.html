@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}My Posted Jobs — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap;">
+      <div>
+        <h4 style="font-size:20px;font-weight:700;margin:0;color:var(--text-primary,#191919);">My Posted Jobs</h4>
+        <p style="font-size:13px;color:var(--text-muted,#666);margin:2px 0 0;">Jobs you've posted to the platform.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'jobs' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:20px;"><i class="bi bi-arrow-left"></i> Browse jobs</a>
+        <a href="{% url 'create_job' %}" class="btn btn-primary btn-sm" style="border-radius:20px;"><i class="bi bi-plus-circle me-1"></i> Post a Job</a>
+      </div>
+    </div>
+
+    {% for job in jobs %}
+    <div class="job-card" style="background:var(--bg-card,#fff);border:1px solid var(--border,#e0e0e0);border-radius:10px;padding:20px;margin-bottom:12px;display:flex;gap:16px;align-items:flex-start;">
+      <div style="width:52px;height:52px;border-radius:8px;background:linear-gradient(135deg,#e8f0fe,#d0e1f9);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;font-weight:700;color:#0a66c2;">
+        {{ job.company.0|upper }}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <a href="{% url 'job_detail' job_id=job.id %}" style="font-weight:700;font-size:16px;color:var(--text-primary,#191919);text-decoration:none;">{{ job.title }}</a>
+        <p style="font-size:14px;color:var(--text-secondary,#666);margin:2px 0 6px;">{{ job.company }} · {{ job.location }}</p>
+        <p style="font-size:12px;color:var(--text-muted,#999);margin:0;">
+          {{ job.applicant_count }} applicant{{ job.applicant_count|pluralize }} · Posted {{ job.created_at|timesince }} ago
+          {% if not job.is_active %} · <span style="color:#cc1016;">Inactive</span>{% endif %}
+        </p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
+        <a href="{% url 'job_detail' job_id=job.id %}" class="btn btn-outline-primary btn-sm" style="border-radius:20px;">View</a>
+      </div>
+    </div>
+    {% empty %}
+    <div style="text-align:center;padding:56px 24px;background:var(--bg-card,#fff);border-radius:10px;border:1px solid var(--border,#e0e0e0);">
+      <i class="bi bi-briefcase" style="font-size:44px;color:#ccc;"></i>
+      <p style="color:var(--text-secondary,#999);font-size:15px;font-weight:600;margin-top:12px;">You haven't posted any jobs yet.</p>
+      <a href="{% url 'create_job' %}" class="btn btn-primary btn-sm mt-2">Post your first job</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

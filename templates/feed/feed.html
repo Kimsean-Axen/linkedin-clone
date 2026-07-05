@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% block title %}Feed — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row g-3">
+
+  <!-- Left sidebar: user mini profile -->
+  <div class="col-lg-3 d-none d-lg-block">
+    <div class="section-card p-0 overflow-hidden mb-3 profile-sidebar-card">
+      <div class="cover-bg"></div>
+      <div class="avatar-wrap px-3 pb-3">
+        <a href="/profile/{{ request.user.id }}/">
+          {% if request.user.profile.profile_picture %}
+            <img src="{{ request.user.profile.profile_picture.url }}" class="av av-md rounded-circle border border-3 border-white" style="margin-top:-22px;display:block;" alt="">
+          {% else %}
+            <span class="av av-md border border-3 border-white" style="margin-top:-22px;display:inline-flex;">{{ request.user.first_name.0|upper }}{{ request.user.last_name.0|upper }}</span>
+          {% endif %}
+        </a>
+        <a href="/profile/{{ request.user.id }}/" class="d-block fw-bold text-dark mt-2" style="font-size:14px;">{{ request.user.get_full_name }}</a>
+        {% if request.user.profile.headline %}
+          <p style="font-size:12px;color:#666;margin:2px 0 0;">{{ request.user.profile.headline }}</p>
+        {% endif %}
+      </div>
+      <div class="sidebar-stat">
+        <span style="font-size:12px;color:#666;">Connections</span>
+        <span>{{ request.user.profile.get_connection_count }}</span>
+      </div>
+      <div class="px-3 py-2">
+        <a href="/profile/edit/" class="sidebar-link d-flex align-items-center gap-2 py-2">
+          <i class="bi bi-bookmark-fill" style="color:#0a66c2;font-size:14px;"></i>
+          <span style="font-size:13px;">Saved items</span>
+        </a>
+        <a href="/background/edit/" class="sidebar-link d-flex align-items-center gap-2 py-2">
+          <i class="bi bi-image" style="color:#0a66c2;font-size:14px;"></i>
+          <span style="font-size:13px;">Customize background</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center: composer + posts -->
+  <div class="col-lg-6">
+
+    <!-- Composer -->
+    <div class="composer mb-3">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        {% if request.user.profile.profile_picture %}
+          <img src="{{ request.user.profile.profile_picture.url }}" class="av av-sm rounded-circle" alt="">
+        {% else %}
+          <span class="av av-sm">{{ request.user.first_name.0|upper }}{{ request.user.last_name.0|upper }}</span>
+        {% endif %}
+        <a href="/feed/create/" class="composer-trigger flex-grow-1">Start a post</a>
+      </div>
+      <div class="d-flex gap-1">
+        <a href="/feed/create/" class="composer-action flex-fill justify-content-center">
+          <i class="bi bi-image text-primary" style="font-size:18px;"></i> <span class="d-none d-sm-inline">Photo</span>
+        </a>
+        <a href="/feed/create/" class="composer-action flex-fill justify-content-center">
+          <i class="bi bi-camera-video text-success" style="font-size:18px;"></i> <span class="d-none d-sm-inline">Video</span>
+        </a>
+        <a href="/feed/create/" class="composer-action flex-fill justify-content-center">
+          <i class="bi bi-newspaper text-warning" style="font-size:18px;"></i> <span class="d-none d-sm-inline">Write article</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Posts -->
+    {% for post in posts %}
+    <div class="post-card" style="margin-bottom:20px;">
+      <div class="post-header d-flex align-items-start gap-2">
+        <a href="/profile/{{ post.author.id }}/">
+          {% if post.author.profile.profile_picture %}
+            <img src="{{ post.author.profile.profile_picture.url }}" class="av av-sm rounded-circle" alt="">
+          {% else %}
+            <span class="av av-sm">{{ post.author.first_name.0|upper }}{{ post.author.last_name.0|upper }}</span>
+          {% endif %}
+        </a>
+        <div class="flex-grow-1">
+          <a href="/profile/{{ post.author.id }}/" class="fw-bold text-dark" style="font-size:14px;display:block;">{{ post.author.get_full_name }}</a>
+          {% if post.author.profile.headline %}<p class="post-headline mb-0">{{ post.author.profile.headline|truncatechars:60 }}</p>{% endif %}
+          <span class="post-meta"><i class="bi bi-globe" style="font-size:11px;"></i> {{ post.created_at|timesince }} ago</span>
+        </div>
+        {% if post.author != request.user %}
+          {% if post.author.id in connected_ids %}
+            <span class="btn btn-outline-primary btn-sm" style="cursor:default;font-size:12px;"><i class="bi bi-people-fill"></i> Connected</span>
+          {% elif post.author.id in pending_sent_ids %}
+            <span class="btn btn-outline-secondary btn-sm" style="cursor:default;font-size:12px;"><i class="bi bi-clock"></i> Requested</span>
+          {% else %}
+            <form method="post" action="/connect/{{ post.author.id }}/">
+              {% csrf_token %}
+              <button class="btn btn-outline-primary btn-sm" style="font-size:12px;"><i class="bi bi-person-plus-fill"></i> Connect</button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Clickable area opens post modal -->
+      <div style="cursor:pointer;" onclick="openPostModal({{ post.id }})">
+        {% if post.content %}
+        <div class="post-body">
+          <p style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin:0 0 10px 0;color:var(--text-primary);">{{ post.content }}</p>
+        </div>
+        {% endif %}
+
+        {% if post.image %}
+        <img src="{{ post.image.url }}" style="width:100%;max-height:400px;object-fit:cover;display:block;">
+        {% endif %}
+        {% if post.video %}
+        <video controls playsinline preload="metadata" style="width:100%;max-height:400px;background:#000;display:block;" onclick="event.stopPropagation();">
+          <source src="{{ post.video.url }}">
+        </video>
+        {% endif %}
+      </div>
+
+      <div class="post-stats">
+        {% with lc=post.likes.count cc=post.comments.count %}
+        {% if lc %}
+        <span>
+          <span class="like-emoji-circle" style="font-size:9px;">👍</span>
+          {{ lc }}
+        </span>
+        {% endif %}
+        {% if cc %}
+        <span style="margin-left:auto;cursor:pointer;" onclick="openPostModal({{ post.id }})">{{ cc }} comment{{ cc|pluralize }}</span>
+        {% endif %}
+        {% endwith %}
+      </div>
+
+      <div class="post-footer d-flex">
+        <form method="post" action="/post/{{ post.id }}/like/" style="flex:1;display:flex;">
+          {% csrf_token %}
+          <button type="submit" class="post-action-btn {% if post.id in liked_post_ids %}liked{% endif %} flex-fill">
+            <i class="bi bi-hand-thumbs-up{% if post.id in liked_post_ids %}-fill{% endif %}"></i> Like
+          </button>
+        </form>
+        <button type="button" class="post-action-btn flex-fill" onclick="openPostModal({{ post.id }})">
+          <i class="bi bi-chat"></i> Comment
+        </button>
+        <button class="post-action-btn flex-fill">
+          <i class="bi bi-share"></i> Share
+        </button>
+      </div>
+    </div>
+
+    <!-- Per-post modal (overlay, does not change URL) -->
+    <div class="modal fade" id="postModal-{{ post.id }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius:12px;border:none;overflow:hidden;">
+          <div class="modal-header" style="border-bottom:1px solid #e0e0e0;padding:14px 20px;">
+            <div class="d-flex align-items-center gap-2" style="min-width:0;">
+              {% if post.author.profile.profile_picture %}
+                <img src="{{ post.author.profile.profile_picture.url }}" class="av av-sm rounded-circle" alt="">
+              {% else %}
+                <span class="av av-sm">{{ post.author.first_name.0|upper }}{{ post.author.last_name.0|upper }}</span>
+              {% endif %}
+              <div style="min-width:0;">
+                <div class="fw-bold" style="font-size:14px;">{{ post.author.get_full_name }}</div>
+                <div style="font-size:11px;color:#666;">{{ post.created_at|timesince }} ago</div>
+              </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" style="padding:0;max-height:75vh;overflow-y:auto;">
+            {% if post.content %}
+            <p style="white-space:pre-wrap;font-size:14px;line-height:1.6;padding:16px 20px 10px;margin:0;">{{ post.content }}</p>
+            {% endif %}
+            {% if post.image %}
+              <img src="{{ post.image.url }}" style="width:100%;display:block;margin-top:6px;">
+            {% endif %}
+            {% if post.video %}
+              <video controls playsinline preload="metadata" style="width:100%;background:#000;display:block;margin-top:6px;">
+                <source src="{{ post.video.url }}">
+              </video>
+            {% endif %}
+
+            <div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;gap:16px;font-size:13px;color:#666;">
+              <span><i class="bi bi-hand-thumbs-up"></i> {{ post.likes.count }}</span>
+              <span><i class="bi bi-chat"></i> {{ post.comments.count }} comment{{ post.comments.count|pluralize }}</span>
+            </div>
+
+            <div style="padding:8px 20px 20px;">
+              {% for comment in post.comments.all %}
+              <div class="d-flex gap-2 mb-2">
+                <a href="/profile/{{ comment.author.id }}/">
+                  {% if comment.author.profile.profile_picture %}
+                    <img src="{{ comment.author.profile.profile_picture.url }}" class="av av-xs rounded-circle flex-shrink-0" alt="">
+                  {% else %}
+                    <span class="av av-xs flex-shrink-0">{{ comment.author.first_name.0|upper }}{{ comment.author.last_name.0|upper }}</span>
+                  {% endif %}
+                </a>
+                <div style="flex:1;">
+                  <div class="comment-bubble">
+                    <a href="/profile/{{ comment.author.id }}/" class="comment-author text-dark">{{ comment.author.get_full_name }}</a>
+                    <p class="comment-text mb-0">{{ comment.content }}</p>
+                  </div>
+                  <span style="font-size:11px;color:#999;margin-left:4px;">{{ comment.created_at|timesince }} ago</span>
+                </div>
+              </div>
+              {% empty %}
+              <p style="color:#999;font-size:13px;text-align:center;margin:12px 0;">No comments yet. Be the first!</p>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="modal-footer" style="border-top:1px solid #e0e0e0;padding:12px 20px;background:#fafafa;">
+            <form method="post" action="/post/{{ post.id }}/comment/" style="flex:1;display:flex;gap:8px;align-items:center;width:100%;">
+              {% csrf_token %}
+              {% if request.user.profile.profile_picture %}
+                <img src="{{ request.user.profile.profile_picture.url }}" class="av av-xs rounded-circle flex-shrink-0" alt="">
+              {% else %}
+                <span class="av av-xs flex-shrink-0">{{ request.user.first_name.0|upper }}{{ request.user.last_name.0|upper }}</span>
+              {% endif %}
+              <div class="comment-input-wrap" style="flex:1;">
+                <input type="text" name="content" class="comment-input" placeholder="Add a comment…" required>
+                <button type="submit" class="comment-send-btn"><i class="bi bi-send-fill"></i></button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div style="text-align:center;padding:64px 24px;background:#fff;border-radius:10px;border:1px solid var(--border);">
+      <i class="bi bi-people" style="font-size:48px;color:#ccc;"></i>
+      <p style="font-weight:600;font-size:16px;color:#666;margin-top:16px;">Your feed is empty</p>
+      <p style="font-size:14px;color:#999;">Connect with people to see their posts here, or <a href="/connections/">explore your network</a>.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Right sidebar: people you may know -->
+  <div class="col-lg-3 d-none d-lg-block">
+    {% if people_you_may_know %}
+    <div class="section-card">
+      <div class="section-title" style="font-size:15px;margin-bottom:12px;">People you may know</div>
+      {% for person in people_you_may_know %}
+      <div class="people-card">
+        <a href="/profile/{{ person.id }}/">
+          {% if person.profile.profile_picture %}
+            <img src="{{ person.profile.profile_picture.url }}" class="av av-xs rounded-circle flex-shrink-0" alt="">
+          {% else %}
+            <span class="av av-xs flex-shrink-0">{{ person.first_name.0|upper }}{{ person.last_name.0|upper }}</span>
+          {% endif %}
+        </a>
+        <div style="flex:1;min-width:0;">
+          <a href="/profile/{{ person.id }}/" class="name d-block">{{ person.get_full_name }}</a>
+          {% if person.profile.headline %}
+          <p class="headline mb-1">{{ person.profile.headline|truncatechars:40 }}</p>
+          {% endif %}
+          <form method="post" action="/connect/{{ person.id }}/">
+            {% csrf_token %}
+            <button class="btn btn-outline-primary btn-sm" style="font-size:11px;padding:2px 10px;border-radius:14px;">
+              <i class="bi bi-person-plus-fill"></i> Connect
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openPostModal(postId) {
+  const el = document.getElementById('postModal-' + postId);
+  if (!el) return;
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
+  modal.show();
+}
+
+// Auto-open a specific post modal from ?post=<id> (used by notifications and deep links)
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const pid = params.get('post');
+  if (!pid) return;
+  const el = document.getElementById('postModal-' + pid);
+  if (el) {
+    setTimeout(function(){ openPostModal(pid); }, 50);
+  }
+})();
+</script>
+{% endblock %}

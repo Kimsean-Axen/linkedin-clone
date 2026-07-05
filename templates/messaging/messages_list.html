@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Messaging — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div style="background:var(--bg-card,#fff);border:1px solid var(--border,#e0e0e0);border-radius:10px;overflow:hidden;">
+
+      <!-- Header -->
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border,#e0e0e0);display:flex;align-items:center;justify-content:space-between;">
+        <h5 style="margin:0;font-weight:700;font-size:17px;color:var(--text-primary,#191919);">
+          Messaging
+          {% if unread_msgs %}
+            <span style="background:#cc1016;color:#fff;border-radius:12px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:6px;">{{ unread_msgs }}</span>
+          {% endif %}
+        </h5>
+        <a href="{% url 'new_message' %}" class="btn btn-primary btn-sm" style="border-radius:20px;">
+          <i class="bi bi-pencil-square"></i> New message
+        </a>
+      </div>
+
+      <!-- Conversations only — no separate Applications tab -->
+      {% for convo in convos %}
+      <a href="{% url 'conversation' user_id=convo.user.id %}" class="msg-row {% if convo.unread %}unread{% endif %}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border,#e0e0e0);text-decoration:none;color:inherit;transition:.15s;">
+        <div style="position:relative;flex-shrink:0;">
+          {% if convo.user.profile.profile_picture %}
+            <img src="{{ convo.user.profile.profile_picture.url }}" class="av rounded-circle" style="width:52px;height:52px;">
+          {% else %}
+            <span class="av" style="width:52px;height:52px;font-size:17px;">{{ convo.user.first_name.0|upper }}{{ convo.user.last_name.0|upper }}</span>
+          {% endif %}
+          {% if convo.unread %}<span style="position:absolute;bottom:2px;right:2px;width:12px;height:12px;background:#0a66c2;border-radius:50%;border:2px solid var(--bg-card,#fff);"></span>{% endif %}
+        </div>
+        <div style="flex:1;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span class="msg-sender" style="color:var(--text-primary,#191919);">{{ convo.user.get_full_name }}</span>
+            {% if convo.last_message %}<span class="msg-time" style="color:var(--text-muted,#999);">{{ convo.last_message.created_at|date:"H:i" }}</span>{% endif %}
+          </div>
+          <p class="msg-preview mb-0" style="color:var(--text-secondary,#666);">
+            {% if convo.last_message %}
+              {% if convo.last_message.content %}{{ convo.last_message.content|truncatechars:60 }}{% elif convo.last_message.attachment %}📎 Attachment{% else %}No messages yet{% endif %}
+            {% else %}No messages yet{% endif %}
+          </p>
+        </div>
+        {% if convo.unread > 0 %}
+          <span style="background:#0a66c2;color:#fff;border-radius:12px;font-size:11px;font-weight:700;padding:2px 8px;flex-shrink:0;">{{ convo.unread }}</span>
+        {% endif %}
+      </a>
+      {% empty %}
+      <div style="text-align:center;padding:64px 24px;">
+        <i class="bi bi-chat-dots" style="font-size:48px;color:#ccc;"></i>
+        <p style="color:var(--text-secondary,#999);font-size:16px;font-weight:600;margin-top:12px;">No conversations yet</p>
+        <p style="color:var(--text-muted,#bbb);font-size:14px;">Start a new message with one of your connections</p>
+        <a href="{% url 'new_message' %}" class="btn btn-primary mt-2">Start a conversation</a>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

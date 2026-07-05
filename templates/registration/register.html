@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join LinkedIn Clone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>body { background:#fff; min-height:100vh; display:flex; flex-direction:column; }</style>
+</head>
+<body>
+<nav style="height:56px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;padding:0 32px;">
+    <a href="/"><span class="linkedin-logo lg">in</span></a>
+</nav>
+
+<div class="d-flex flex-column align-items-center justify-content-center flex-grow-1 py-5 px-3">
+    <div style="width:100%;max-width:500px;">
+        <h1 style="font-size:28px;font-weight:700;color:#191919;margin-bottom:4px;">Make the most of your professional life</h1>
+        <p style="color:#666;margin-bottom:24px;font-size:14px;">Join 500M+ members already on LinkedIn Clone</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="form-label">First name</label>
+                    <input type="text" name="first_name" class="form-control" placeholder="First name" required value="{{ form.first_name.value|default:'' }}">
+                    {% if form.first_name.errors %}<div style="color:#cc1016;font-size:12px;margin-top:4px;">{{ form.first_name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Last name</label>
+                    <input type="text" name="last_name" class="form-control" placeholder="Last name" required value="{{ form.last_name.value|default:'' }}">
+                    {% if form.last_name.errors %}<div style="color:#cc1016;font-size:12px;margin-top:4px;">{{ form.last_name.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control" placeholder="Email address" required value="{{ form.email.value|default:'' }}">
+                {% if form.email.errors %}<div style="color:#cc1016;font-size:12px;margin-top:4px;">{{ form.email.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password (6+ characters)</label>
+                <input type="password" name="password1" id="regPassword1" class="form-control" placeholder="Password" required>
+                {% if form.password1.errors %}<div style="color:#cc1016;font-size:12px;margin-top:4px;">{{ form.password1.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Confirm password</label>
+                <input type="password" name="password2" id="regPassword2" class="form-control" placeholder="Confirm password" required>
+                {% if form.password2.errors %}<div style="color:#cc1016;font-size:12px;margin-top:4px;">{{ form.password2.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="form-check mb-4">
+                <input type="checkbox" class="form-check-input" id="showRegPassword" onchange="var t = this.checked ? 'text' : 'password'; document.getElementById('regPassword1').type = t; document.getElementById('regPassword2').type = t;">
+                <label class="form-check-label" for="showRegPassword" style="font-size:13px;">Show password</label>
+            </div>
+
+            <p style="font-size:12px;color:#999;margin-bottom:16px;">
+                By clicking Agree & Join, you agree to our <a href="#" style="color:#0a66c2;">User Agreement</a> and <a href="#" style="color:#0a66c2;">Privacy Policy</a>.
+            </p>
+
+            <button type="submit" class="btn btn-primary w-100" style="height:46px;font-size:15px;border-radius:24px;justify-content:center;">Agree & Join</button>
+        </form>
+
+        <div class="divider-text my-4">Already on LinkedIn Clone?</div>
+        <a href="/login/" class="btn btn-outline-primary w-100" style="height:46px;font-size:15px;justify-content:center;">Sign in</a>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

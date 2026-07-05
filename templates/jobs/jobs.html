@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% block title %}Jobs — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row g-3">
+
+  <div class="col-lg-3">
+    <div class="section-card mb-3">
+      <div class="section-title" style="font-size:15px;">Filters</div>
+      <form method="get" id="jobs-filter-form">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:13px;">Search</label>
+          <div style="position:relative;">
+            <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;"></i>
+            <input type="text" name="q" id="job-search-input" class="form-control" placeholder="Title, company, location…"
+                   value="{{ query }}" style="padding-left:34px;" autocomplete="off">
+          </div>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;" id="keyword-chips">
+            {% for kw in keyword_suggestions %}
+            <button type="button" class="keyword-chip{% if query == kw %} active{% endif %}"
+                    onclick="setKeyword('{{ kw }}')"
+                    style="background:{% if query == kw %}#0a66c2{% else %}#f0f4f8{% endif %};border:1px solid {% if query == kw %}#0a66c2{% else %}#d0d7de{% endif %};border-radius:20px;padding:3px 10px;font-size:12px;color:{% if query == kw %}#fff{% else %}#0a66c2{% endif %};font-weight:500;cursor:pointer;">{{ kw }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- FIX 7: Job Type filter (multi-select, full row clickable) -->
+        <div class="mb-3">
+          <button type="button" class="filter-group-toggle d-flex w-100 align-items-center justify-content-between" onclick="toggleGroup('jt-group')"
+                  style="background:none;border:none;padding:0;cursor:pointer;margin-bottom:6px;">
+            <label class="form-label fw-semibold mb-0" style="font-size:13px;cursor:pointer;">
+              Job Type
+              {% if job_types %}<span style="font-size:10px;color:#0a66c2;font-weight:700;margin-left:4px;">{{ job_types|length }}</span>{% endif %}
+            </label>
+            <i class="bi bi-chevron-down" id="jt-group-icon" style="font-size:11px;color:#999;transition:.2s;"></i>
+          </button>
+          <div id="jt-group">
+            {% for value, label in job_type_choices %}
+            <label class="filter-check-row" for="jt_{{ value }}"
+                   style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:background .1s;"
+                   onmouseover="this.style.background='var(--bg,#f5f5f5)'" onmouseout="this.style.background='transparent'">
+              <input type="checkbox" name="job_type" value="{{ value }}" id="jt_{{ value }}"
+                     class="form-check-input mt-0" style="flex-shrink:0;"
+                     {% if value in job_types %}checked{% endif %}>
+              <span style="font-size:13px;color:var(--text-primary,#191919);">{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- FIX 7: Experience Level filter (multi-select, full row clickable) -->
+        <div class="mb-3">
+          <button type="button" class="filter-group-toggle d-flex w-100 align-items-center justify-content-between" onclick="toggleGroup('el-group')"
+                  style="background:none;border:none;padding:0;cursor:pointer;margin-bottom:6px;">
+            <label class="form-label fw-semibold mb-0" style="font-size:13px;cursor:pointer;">
+              Experience Level
+              {% if experience_levels %}<span style="font-size:10px;color:#0a66c2;font-weight:700;margin-left:4px;">{{ experience_levels|length }}</span>{% endif %}
+            </label>
+            <i class="bi bi-chevron-down" id="el-group-icon" style="font-size:11px;color:#999;transition:.2s;"></i>
+          </button>
+          <div id="el-group">
+            {% for value, label in experience_choices %}
+            <label class="filter-check-row" for="el_{{ value }}"
+                   style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:background .1s;"
+                   onmouseover="this.style.background='var(--bg,#f5f5f5)'" onmouseout="this.style.background='transparent'">
+              <input type="checkbox" name="experience_level" value="{{ value }}" id="el_{{ value }}"
+                     class="form-check-input mt-0" style="flex-shrink:0;"
+                     {% if value in experience_levels %}checked{% endif %}>
+              <span style="font-size:13px;color:var(--text-primary,#191919);">{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'jobs' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:20px;">Clear filters</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Active filter pills -->
+    {% if job_types or experience_levels or query %}
+    <div class="section-card mb-3" style="padding:12px 16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted,#999);margin-bottom:8px;">Active Filters</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        {% for t in job_types %}
+          <span style="background:#e8f0fe;color:#0a66c2;border-radius:20px;font-size:12px;font-weight:500;padding:2px 10px;display:inline-flex;align-items:center;gap:4px;">
+            {{ t|title }}
+            <a href="#" onclick="removeFilter('job_type','{{ t }}');return false;" style="color:#0a66c2;text-decoration:none;line-height:1;">&times;</a>
+          </span>
+        {% endfor %}
+        {% for l in experience_levels %}
+          <span style="background:#e8f0fe;color:#0a66c2;border-radius:20px;font-size:12px;font-weight:500;padding:2px 10px;display:inline-flex;align-items:center;gap:4px;">
+            {{ l|title }}
+            <a href="#" onclick="removeFilter('experience_level','{{ l }}');return false;" style="color:#0a66c2;text-decoration:none;line-height:1;">&times;</a>
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-9">
+    <!-- Header row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+      <p style="font-size:14px;color:var(--text-muted,#666);margin:0;">
+        {% if jobs %}{{ jobs|length }} job{% if jobs|length != 1 %}s{% endif %} found{% if query %} for "{{ query }}"{% endif %}{% else %}No jobs found{% endif %}
+      </p>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'my_jobs' %}" class="btn btn-outline-primary btn-sm" style="border-radius:20px;">
+          <i class="bi bi-person-workspace me-1"></i> My posted jobs{% if my_jobs_count %} ({{ my_jobs_count }}){% endif %}
+        </a>
+        <a href="{% url 'create_job' %}" class="btn btn-primary btn-sm" style="border-radius:20px;">
+          <i class="bi bi-plus-circle me-1"></i> Post a Job
+        </a>
+      </div>
+    </div>
+
+    {% for job in jobs %}
+    <a href="{% url 'job_detail' job_id=job.id %}" class="job-card-link" style="display:block;text-decoration:none;color:inherit;">
+    <div class="job-card" style="background:var(--bg-card,#fff);border:1px solid var(--border,#e0e0e0);border-radius:10px;padding:20px;margin-bottom:12px;display:flex;gap:16px;align-items:flex-start;transition:.15s;cursor:pointer;">
+      <div style="width:52px;height:52px;border-radius:8px;background:linear-gradient(135deg,#e8f0fe,#d0e1f9);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;font-weight:700;color:#0a66c2;">
+        {{ job.company.0|upper }}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <span style="font-weight:700;font-size:16px;color:var(--text-primary,#191919);">{{ job.title }}</span>
+        <p style="font-size:14px;color:var(--text-secondary,#666);margin:2px 0 6px;">{{ job.company }} · {{ job.location }}</p>
+        <!-- FIX 7: Show multiple job types and experience levels -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+          {% for t in job.get_job_type_labels %}
+          <span style="background:#f0f4f8;border:1px solid #d0d7de;border-radius:20px;font-size:11px;color:#555;padding:2px 8px;">{{ t }}</span>
+          {% endfor %}
+          {% for l in job.get_experience_level_labels %}
+          <span style="background:#f0f4f8;border:1px solid #d0d7de;border-radius:20px;font-size:11px;color:#555;padding:2px 8px;">{{ l }}</span>
+          {% endfor %}
+        </div>
+        {% if job.salary_min or job.salary_max or job.salary_negotiable %}
+        <p style="font-size:13px;color:var(--text-secondary,#555);margin:0;">
+          <i class="bi bi-currency-dollar" style="color:#057642;"></i>
+          {% if job.salary_min and job.salary_max %}
+            ${{ job.salary_min|floatformat:0 }} – ${{ job.salary_max|floatformat:0 }}{% if job.salary_negotiable %} · Negotiable{% endif %}
+          {% elif job.salary_min %}
+            From ${{ job.salary_min|floatformat:0 }}{% if job.salary_negotiable %} · Negotiable{% endif %}
+          {% elif job.salary_max %}
+            Up to ${{ job.salary_max|floatformat:0 }}{% if job.salary_negotiable %} · Negotiable{% endif %}
+          {% else %}
+            Negotiable
+          {% endif %}
+        </p>
+        {% endif %}
+        <p style="font-size:12px;color:var(--text-muted,#999);margin-top:4px;">{{ job.created_at|timesince }} ago</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">
+        {% if job.poster == current_user %}
+          <span class="btn btn-sm" style="background:#fff3e0;color:#e65100;border:none;border-radius:20px;cursor:default;">
+            <i class="bi bi-person-workspace"></i> Your Post
+          </span>
+        {% elif job.id in applied_job_ids %}
+          <span class="btn btn-sm" style="background:#dcfce7;color:#057642;border:none;border-radius:20px;"><i class="bi bi-check-circle-fill"></i> Applied</span>
+        {% endif %}
+      </div>
+    </div>
+    </a>
+    {% empty %}
+    <div style="text-align:center;padding:64px 0;background:var(--bg-card,#fff);border-radius:10px;border:1px solid var(--border,#e0e0e0);">
+      <i class="bi bi-briefcase" style="font-size:48px;color:#ccc;"></i>
+      <p style="color:var(--text-secondary,#999);margin-top:12px;font-size:16px;font-weight:600;">No jobs found</p>
+      <p style="color:var(--text-muted,#bbb);font-size:14px;">Try adjusting your filters or <a href="{% url 'create_job' %}" style="color:#0a66c2;">post a job</a></p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function removeFilter(name, value) {
+  const url = new URL(window.location.href);
+  const existing = url.searchParams.getAll(name).filter(v => v !== value);
+  url.searchParams.delete(name);
+  existing.forEach(v => url.searchParams.append(name, v));
+  window.location.href = url.toString();
+}
+
+function setKeyword(kw) {
+  const input = document.getElementById('job-search-input');
+  if (!input) return;
+  // Toggle: clicking the already-active keyword clears it
+  if ((input.value || '').trim() === kw) {
+    input.value = '';
+  } else {
+    input.value = kw;
+  }
+  input.closest('form').submit();
+}
+
+function toggleGroup(id) {
+  const el = document.getElementById(id);
+  const icon = document.getElementById(id + '-icon');
+  if (!el) return;
+  const collapsed = el.style.display === 'none';
+  el.style.display = collapsed ? '' : 'none';
+  if (icon) icon.style.transform = collapsed ? '' : 'rotate(-90deg)';
+}
+
+// Auto-submit filter form when checkboxes change
+document.querySelectorAll('#jobs-filter-form input[type=checkbox]').forEach(function(cb) {
+  cb.addEventListener('change', function() {
+    document.getElementById('jobs-filter-form').submit();
+  });
+});
+</script>
+{% endblock %}

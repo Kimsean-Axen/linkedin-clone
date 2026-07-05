@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% block title %}Customize Background — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row g-3 justify-content-center">
+  <div class="col-lg-4">
+
+    <!-- Controls -->
+    <div class="section-card" style="position:sticky;top:68px;">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#0a66c2,#004182);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="bi bi-image" style="font-size:20px;color:#fff;"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold" style="font-size:18px;">Customize Background</h4>
+          <p class="mb-0" style="font-size:12px;color:var(--text-muted,#666);">Preview updates in real time →</p>
+        </div>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" id="bg-form">
+        {% csrf_token %}
+
+        <!-- Image upload -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold" style="font-size:13px;">Background Image</label>
+          {% if user_profile.bg_image %}
+          <div class="d-flex align-items-center gap-2 mb-2 p-2" style="background:var(--bg,#f8f9fa);border-radius:6px;border:1px solid var(--border);">
+            <img src="{{ user_profile.bg_image.url }}" style="width:48px;height:32px;object-fit:cover;border-radius:4px;" alt="">
+            <span style="font-size:12px;color:var(--text-secondary,#555);flex:1;">Current background</span>
+            <button type="submit" name="remove_bg" class="btn btn-ghost btn-sm" style="color:#cc1016;padding:2px 8px;font-size:12px;">Remove</button>
+          </div>
+          {% endif %}
+          <label for="id_bg_image" class="btn btn-outline-primary btn-sm w-100" style="cursor:pointer;">
+            <i class="bi bi-upload me-1"></i> Choose image
+          </label>
+          <!-- FIX 5: new image replaces old — handled server-side -->
+          <input type="file" name="bg_image" id="id_bg_image" accept="image/*" style="display:none;" onchange="previewBg(this)">
+          <p class="form-text mt-1">JPG, PNG, WebP · max 10 MB. Landscape images work best.</p>
+        </div>
+
+        <!-- Opacity slider -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold d-flex justify-content-between" style="font-size:13px;">
+            Opacity
+            <span id="opacity-label" style="color:#0a66c2;font-weight:700;">{{ user_profile.bg_opacity|floatformat:0 }}%</span>
+          </label>
+          <input type="range" name="bg_opacity" id="bg-opacity-slider" class="form-range"
+                 min="0" max="1" step="0.05"
+                 value="{{ user_profile.bg_opacity }}"
+                 oninput="updatePreview()">
+          <div class="d-flex justify-content-between" style="font-size:11px;color:var(--text-muted,#999);margin-top:2px;">
+            <span>Subtle</span><span>Strong</span>
+          </div>
+        </div>
+
+        <!-- Fit / position -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:13px;">Image Fit</label>
+          <div class="row g-2">
+            {% for value, label in form.fields.bg_fit.choices %}
+            <div class="col-6">
+              <input type="radio" name="bg_fit" id="fit_{{ value }}" value="{{ value }}"
+                     class="btn-check" {% if user_profile.bg_fit == value %}checked{% endif %}
+                     onchange="updatePreview()">
+              <label for="fit_{{ value }}" class="btn btn-outline-secondary w-100" style="font-size:12px;border-radius:8px;padding:8px;">
+                {% if value == 'cover' %}<i class="bi bi-fullscreen d-block mb-1" style="font-size:16px;"></i>{% elif value == 'contain' %}<i class="bi bi-aspect-ratio d-block mb-1" style="font-size:16px;"></i>{% elif value == 'stretch' %}<i class="bi bi-arrows-fullscreen d-block mb-1" style="font-size:16px;"></i>{% elif value == 'tile' %}<i class="bi bi-grid-3x3 d-block mb-1" style="font-size:16px;"></i>{% endif %}
+                {{ label }}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- FIX 6: Position & Zoom controls -->
+        <div class="mb-3" id="position-controls">
+          <label class="form-label fw-semibold" style="font-size:13px;">
+            Position &amp; Zoom
+            <span style="font-size:11px;font-weight:400;color:var(--text-muted,#999);">drag the preview to reposition</span>
+          </label>
+          <div class="mb-2">
+            <div class="d-flex justify-content-between" style="font-size:12px;color:var(--text-secondary,#666);margin-bottom:3px;">
+              <span>← Horizontal →</span>
+              <span id="pos-x-label" style="color:#0a66c2;font-weight:600;">{{ user_profile.bg_position_x|floatformat:0 }}%</span>
+            </div>
+            <input type="range" name="bg_position_x" id="bg-pos-x-slider" class="form-range"
+                   min="0" max="100" step="1"
+                   value="{{ user_profile.bg_position_x }}"
+                   oninput="updatePreview()">
+          </div>
+          <div class="mb-2">
+            <div class="d-flex justify-content-between" style="font-size:12px;color:var(--text-secondary,#666);margin-bottom:3px;">
+              <span>↑ Vertical ↓</span>
+              <span id="pos-y-label" style="color:#0a66c2;font-weight:600;">{{ user_profile.bg_position_y|floatformat:0 }}%</span>
+            </div>
+            <input type="range" name="bg_position_y" id="bg-pos-y-slider" class="form-range"
+                   min="0" max="100" step="1"
+                   value="{{ user_profile.bg_position_y }}"
+                   oninput="updatePreview()">
+          </div>
+          <div>
+            <div class="d-flex justify-content-between" style="font-size:12px;color:var(--text-secondary,#666);margin-bottom:3px;">
+              <span>Zoom</span>
+              <span id="zoom-label" style="color:#0a66c2;font-weight:600;">{{ user_profile.bg_zoom|floatformat:0 }}%</span>
+            </div>
+            <input type="range" name="bg_zoom" id="bg-zoom-slider" class="form-range"
+                   min="50" max="300" step="5"
+                   value="{{ user_profile.bg_zoom }}"
+                   oninput="updatePreview()">
+            <div class="d-flex justify-content-between" style="font-size:11px;color:var(--text-muted,#999);margin-top:2px;">
+              <span>Smaller</span><span>Larger</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" style="border-radius:24px;height:44px;font-size:15px;">
+          <i class="bi bi-check-lg me-1"></i> Save Background
+        </button>
+        <a href="/feed/" class="btn btn-ghost w-100 mt-2">← Back to Feed</a>
+      </form>
+    </div>
+  </div>
+
+  <!-- Live preview with mock content -->
+  <div class="col-lg-8">
+    <!-- FIX 6: Draggable preview for repositioning -->
+    <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);position:relative;min-height:600px;cursor:grab;user-select:none;"
+         id="preview-area"
+         onmousedown="startDrag(event)" onmousemove="doDrag(event)" onmouseup="endDrag()" onmouseleave="endDrag()">
+
+      <!-- Background layer -->
+      <div id="preview-bg-layer" style="
+        position:absolute;inset:0;z-index:0;
+        {% if user_profile.bg_image %}
+          background-image:url('{{ user_profile.bg_image.url }}');
+          background-size:{% if user_profile.bg_fit == 'tile' %}auto{% elif user_profile.bg_fit == 'contain' %}contain{% elif user_profile.bg_fit == 'stretch' %}100% 100%{% else %}{{ user_profile.bg_zoom }}%{% endif %};
+          background-position:{{ user_profile.bg_position_x }}% {{ user_profile.bg_position_y }}%;
+          background-repeat:{% if user_profile.bg_fit == 'tile' %}repeat{% else %}no-repeat{% endif %};
+          opacity:{{ user_profile.bg_opacity }};
+        {% else %}
+          background:var(--bg);
+          opacity:1;
+        {% endif %}
+      "></div>
+
+      <!-- Mock content on top of background -->
+      <div style="position:relative;z-index:1;padding:20px;background:transparent;pointer-events:none;">
+        <div style="font-size:11px;font-weight:700;color:#0a66c2;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;opacity:.8;">Preview — placeholder content</div>
+
+        <div class="row g-3">
+          <!-- Mock sidebar -->
+          <div class="col-3 d-none d-md-block">
+            <div class="card p-3 text-center" style="border-radius:12px;">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#004182);margin:0 auto 8px;"></div>
+              <div style="height:12px;background:#e0e0e0;border-radius:6px;margin-bottom:6px;"></div>
+              <div style="height:10px;background:#eee;border-radius:6px;width:70%;margin:0 auto 4px;"></div>
+              <div style="height:10px;background:#eee;border-radius:6px;width:50%;margin:0 auto;"></div>
+              <div style="border-top:1px solid #e0e0e0;margin-top:12px;padding-top:10px;">
+                <div style="height:10px;background:#eee;border-radius:6px;margin-bottom:6px;"></div>
+                <div style="height:10px;background:#eee;border-radius:6px;width:70%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mock feed posts -->
+          <div class="col-12 col-md-9">
+            <div class="card p-3 mb-3" style="border-radius:12px;">
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:40px;height:40px;border-radius:50%;background:#e0e0e0;flex-shrink:0;"></div>
+                <div style="height:38px;flex:1;border:1.5px solid #ccc;border-radius:24px;background:#f8f8f8;"></div>
+              </div>
+              <div class="d-flex gap-2 mt-2">
+                <div style="height:28px;flex:1;background:#f0f0f0;border-radius:4px;"></div>
+                <div style="height:28px;flex:1;background:#f0f0f0;border-radius:4px;"></div>
+                <div style="height:28px;flex:1;background:#f0f0f0;border-radius:4px;"></div>
+              </div>
+            </div>
+            <div class="card p-3 mb-3" style="border-radius:12px;">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#004182);flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <div style="height:12px;background:#d0d0d0;border-radius:6px;width:120px;margin-bottom:5px;"></div>
+                  <div style="height:10px;background:#e8e8e8;border-radius:6px;width:180px;"></div>
+                </div>
+              </div>
+              <div style="height:12px;background:#e8e8e8;border-radius:6px;margin-bottom:6px;"></div>
+              <div style="height:12px;background:#e8e8e8;border-radius:6px;margin-bottom:6px;width:90%;"></div>
+              <div style="height:12px;background:#e8e8e8;border-radius:6px;width:75%;"></div>
+              <div style="height:140px;background:#f0f0f0;border-radius:8px;margin-top:12px;"></div>
+            </div>
+            <div class="card p-3" style="border-radius:12px;">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div style="width:44px;height:44px;border-radius:50%;background:#e0e0e0;flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <div style="height:12px;background:#d0d0d0;border-radius:6px;width:100px;margin-bottom:5px;"></div>
+                  <div style="height:10px;background:#e8e8e8;border-radius:6px;width:160px;"></div>
+                </div>
+              </div>
+              <div style="height:12px;background:#e8e8e8;border-radius:6px;margin-bottom:6px;"></div>
+              <div style="height:12px;background:#e8e8e8;border-radius:6px;width:80%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if not user_profile.bg_image %}
+    <div style="text-align:center;padding:20px 0;color:var(--text-muted,#999);font-size:13px;">
+      <i class="bi bi-image" style="font-size:24px;margin-bottom:6px;display:block;color:#ccc;"></i>
+      Upload an image to see a live preview above.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var previewBgUrl = '{% if user_profile.bg_image %}{{ user_profile.bg_image.url }}{% endif %}';
+
+function previewBg(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    previewBgUrl = e.target.result;
+    updatePreview();
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function updatePreview() {
+  var layer = document.getElementById('preview-bg-layer');
+  if (!layer) return;
+
+  var opacitySlider = document.getElementById('bg-opacity-slider');
+  var xSlider = document.getElementById('bg-pos-x-slider');
+  var ySlider = document.getElementById('bg-pos-y-slider');
+  var zoomSlider = document.getElementById('bg-zoom-slider');
+
+  var opacity = opacitySlider ? parseFloat(opacitySlider.value) : 0.5;
+  var posX = xSlider ? parseFloat(xSlider.value) : 50;
+  var posY = ySlider ? parseFloat(ySlider.value) : 50;
+  var zoom = zoomSlider ? parseFloat(zoomSlider.value) : 100;
+
+  // Update displayed values
+  var opPct = Math.round(opacity * 100);
+  var opLabel = document.getElementById('opacity-label');
+  if (opLabel) opLabel.textContent = opPct + '%';
+  var xLabel = document.getElementById('pos-x-label');
+  if (xLabel) xLabel.textContent = Math.round(posX) + '%';
+  var yLabel = document.getElementById('pos-y-label');
+  if (yLabel) yLabel.textContent = Math.round(posY) + '%';
+  var zLabel = document.getElementById('zoom-label');
+  if (zLabel) zLabel.textContent = Math.round(zoom) + '%';
+
+  var fitEl = document.querySelector('input[name="bg_fit"]:checked');
+  var fit = fitEl ? fitEl.value : 'cover';
+
+  // Show/hide position controls based on fit
+  var posControls = document.getElementById('position-controls');
+  if (posControls) posControls.style.display = fit === 'stretch' ? 'none' : '';
+
+  if (previewBgUrl) {
+    layer.style.backgroundImage = 'url(' + previewBgUrl + ')';
+    layer.style.opacity = opacity;
+
+    if (fit === 'tile') {
+      layer.style.backgroundSize = 'auto';
+      layer.style.backgroundRepeat = 'repeat';
+      layer.style.backgroundPosition = posX + '% ' + posY + '%';
+    } else if (fit === 'contain') {
+      layer.style.backgroundSize = 'contain';
+      layer.style.backgroundRepeat = 'no-repeat';
+      layer.style.backgroundPosition = posX + '% ' + posY + '%';
+    } else if (fit === 'stretch') {
+      layer.style.backgroundSize = '100% 100%';
+      layer.style.backgroundRepeat = 'no-repeat';
+      layer.style.backgroundPosition = '0 0';
+    } else {
+      // cover with zoom + position
+      layer.style.backgroundSize = zoom + '%';
+      layer.style.backgroundRepeat = 'no-repeat';
+      layer.style.backgroundPosition = posX + '% ' + posY + '%';
+    }
+  }
+}
+
+// FIX 6: Mouse drag to reposition
+var isDragging = false;
+var dragStartX, dragStartY, dragStartPosX, dragStartPosY;
+
+function startDrag(e) {
+  if (!previewBgUrl) return;
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragStartPosX = parseFloat(document.getElementById('bg-pos-x-slider').value);
+  dragStartPosY = parseFloat(document.getElementById('bg-pos-y-slider').value);
+  document.getElementById('preview-area').style.cursor = 'grabbing';
+}
+
+function doDrag(e) {
+  if (!isDragging) return;
+  var fitEl = document.querySelector('input[name="bg_fit"]:checked');
+  if (fitEl && fitEl.value === 'stretch') return;
+
+  var dx = e.clientX - dragStartX;
+  var dy = e.clientY - dragStartY;
+  var sensitivity = 0.2;
+  var newX = Math.max(0, Math.min(100, dragStartPosX + dx * sensitivity));
+  var newY = Math.max(0, Math.min(100, dragStartPosY + dy * sensitivity));
+  document.getElementById('bg-pos-x-slider').value = newX;
+  document.getElementById('bg-pos-y-slider').value = newY;
+  updatePreview();
+}
+
+function endDrag() {
+  isDragging = false;
+  document.getElementById('preview-area').style.cursor = 'grab';
+}
+
+// Attach listeners
+['bg-opacity-slider','bg-pos-x-slider','bg-pos-y-slider','bg-zoom-slider'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('input', updatePreview);
+});
+document.querySelectorAll('input[name="bg_fit"]').forEach(function(r) {
+  r.addEventListener('change', updatePreview);
+});
+
+// Initial render
+updatePreview();
+</script>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block title %}{{ job.title }} at {{ job.company }} — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="row g-3 justify-content-center">
+  <div class="col-lg-8">
+    <div class="section-card mb-3">
+      <div class="d-flex gap-4 mb-4 align-items-start">
+        <div class="job-logo" style="width:72px;height:72px;font-size:30px;border-radius:10px;">{{ job.company.0|upper }}</div>
+        <div class="flex-grow-1">
+          <h1 style="font-size:22px;font-weight:700;margin-bottom:4px;color:var(--text-primary,#191919);">{{ job.title }}</h1>
+          <p style="font-size:15px;color:var(--text-secondary,#555);margin-bottom:8px;">{{ job.company }}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <span class="job-tag"><i class="bi bi-geo-alt me-1"></i>{{ job.location }}</span>
+            {% for t in job.get_job_type_labels %}
+              <span class="job-tag">{{ t }}</span>
+            {% endfor %}
+            {% for l in job.get_experience_level_labels %}
+              <span class="job-tag">{{ l }}</span>
+            {% endfor %}
+            {% if job.salary_min or job.salary_max %}
+              <span class="job-tag" style="color:#057642;background:#dcfce7;border-color:#dcfce7;">
+                {% if job.salary_min and job.salary_max %}
+                  ${{ job.salary_min|floatformat:0 }} – ${{ job.salary_max|floatformat:0 }}
+                {% elif job.salary_min %}
+                  From ${{ job.salary_min|floatformat:0 }}
+                {% else %}
+                  Up to ${{ job.salary_max|floatformat:0 }}
+                {% endif %}
+                {% if job.salary_negotiable %} · Negotiable{% endif %}
+              </span>
+            {% elif job.salary_negotiable %}
+              <span class="job-tag" style="color:#057642;background:#dcfce7;border-color:#dcfce7;">Salary Negotiable</span>
+            {% endif %}
+          </div>
+          <p style="font-size:12px;color:var(--text-muted,#999);margin-top:8px;margin-bottom:0;">
+            {{ job.applicant_count }} applicant{{ job.applicant_count|pluralize }} · Posted {{ job.created_at|timesince }} ago ·
+            by <a href="{% url 'profile' user_id=job.poster.id %}">{{ job.poster.get_full_name }}</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="d-flex gap-2 align-items-center flex-wrap mb-4">
+        {% if is_poster %}
+          <!-- Poster sees Delete button — Apply is hidden -->
+          <span class="btn btn-sm" style="background:#fff3e0;color:#e65100;border:none;border-radius:20px;padding:8px 18px;font-weight:600;cursor:default;">
+            <i class="bi bi-person-workspace"></i> Your Posting
+          </span>
+          <form method="post" action="{% url 'delete_job' job_id=job.id %}" style="display:inline;"
+                onsubmit="return confirm('Delete this job post? It will no longer appear in the listings.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:20px;padding:8px 16px;font-weight:600;">
+              <i class="bi bi-trash3 me-1"></i>Delete Post
+            </button>
+          </form>
+        {% elif has_applied %}
+          <!-- Already applied: show confirmation -->
+          <span class="btn btn-sm" style="background:#dcfce7;color:#057642;border-radius:20px;border:none;padding:8px 20px;font-weight:600;">
+            <i class="bi bi-check-circle-fill me-1"></i>Applied
+          </span>
+        {% endif %}
+
+        {% for cl in job.contact_links.all %}
+        <a href="{{ cl.url }}" target="_blank" rel="noopener noreferrer"
+           class="btn btn-outline-primary btn-sm" style="border-radius:20px;">
+          <i class="bi bi-link-45deg me-1"></i>{{ cl.label }}
+        </a>
+        {% endfor %}
+        {% if job.contact_link and not job.contact_links.all %}
+        <a href="{{ job.contact_link }}" target="_blank" rel="noopener noreferrer"
+           class="btn btn-outline-primary btn-sm" style="border-radius:20px;">
+          <i class="bi bi-link-45deg me-1"></i>Contact / Apply via Link
+        </a>
+        {% endif %}
+      </div>
+
+      <hr style="border-color:var(--border,#e0e0e0);margin:0 0 20px;">
+
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;color:var(--text-primary,#191919);">About the job</h2>
+      <div style="font-size:14px;color:var(--text-secondary,#444);line-height:1.7;white-space:pre-wrap;">{{ job.description }}</div>
+
+      {% if job.requirements %}
+      <h2 style="font-size:18px;font-weight:700;margin:24px 0 12px;color:var(--text-primary,#191919);">Requirements</h2>
+      <div style="font-size:14px;color:var(--text-secondary,#444);line-height:1.7;white-space:pre-wrap;">{{ job.requirements }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Applicants panel — poster only -->
+    {% if is_poster and applicants %}
+    <div class="section-card mb-3">
+      <div class="section-title">
+        <i class="bi bi-people-fill me-2" style="color:#0a66c2;"></i>
+        Applicants ({{ applicants|length }})
+      </div>
+      {% for app in applicants %}
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border,#e0e0e0);">
+        <a href="{% url 'profile' user_id=app.applicant.id %}" style="flex-shrink:0;">
+          {% if app.applicant.profile.profile_picture %}
+            <img src="{{ app.applicant.profile.profile_picture.url }}" class="av rounded-circle" style="width:46px;height:46px;" alt="">
+          {% else %}
+            <span class="av" style="width:46px;height:46px;font-size:16px;">{{ app.applicant.first_name.0|upper }}{{ app.applicant.last_name.0|upper }}</span>
+          {% endif %}
+        </a>
+        <div style="flex:1;min-width:0;">
+          <a href="{% url 'profile' user_id=app.applicant.id %}" style="font-weight:700;font-size:14px;color:var(--text-primary,#191919);text-decoration:none;">{{ app.applicant.get_full_name }}</a>
+          <p style="font-size:12px;color:var(--text-muted,#999);margin:2px 0;">Applied {{ app.applied_at|timesince }} ago</p>
+          {% if app.resume %}
+          <a href="{{ app.resume.url }}" target="_blank" style="font-size:13px;color:#0a66c2;text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:6px;">
+            <i class="bi bi-file-earmark-text"></i> View Resume
+          </a>
+          {% endif %}
+          {% if app.cover_letter %}
+          <details style="margin-top:4px;">
+            <summary style="font-size:13px;color:#0a66c2;cursor:pointer;font-weight:500;">View cover letter</summary>
+            <div style="margin-top:8px;font-size:13px;color:var(--text-secondary,#555);line-height:1.6;background:var(--bg,#f8f8f8);border-radius:6px;padding:12px;border:1px solid var(--border,#e0e0e0);white-space:pre-wrap;">{{ app.cover_letter }}</div>
+          </details>
+          {% endif %}
+        </div>
+        <a href="{% url 'conversation' user_id=app.applicant.id %}" class="btn btn-primary btn-sm flex-shrink-0" style="border-radius:20px;white-space:nowrap;">
+          <i class="bi bi-chat-dots me-1"></i>Message
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% elif is_poster %}
+    <div class="section-card mb-3" style="text-align:center;padding:32px 24px;">
+      <i class="bi bi-people" style="font-size:36px;color:#ccc;"></i>
+      <p style="color:var(--text-muted,#999);margin-top:10px;font-size:14px;">No applications yet. Share this job to attract candidates.</p>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'jobs' %}" style="color:#0a66c2;font-size:14px;"><i class="bi bi-arrow-left me-1"></i>Back to jobs</a>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-3 d-none d-lg-block">
+    <div class="section-card" style="position:sticky;top:68px;">
+      <div style="font-weight:700;font-size:16px;margin-bottom:12px;color:var(--text-primary,#191919);">About the company</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#e8f0fe,#d0e1f9);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#0a66c2;flex-shrink:0;">
+          {{ job.company.0|upper }}
+        </div>
+        <div>
+          <p style="font-weight:700;font-size:14px;margin:0;color:var(--text-primary,#191919);">{{ job.company }}</p>
+          <p style="font-size:12px;color:var(--text-muted,#999);margin:0;">{{ job.location }}</p>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary,#555);">
+        Posted by <a href="{% url 'profile' user_id=job.poster.id %}" style="color:#0a66c2;font-weight:600;">{{ job.poster.get_full_name }}</a>
+      </p>
+      {% if job.contact_links.all or job.contact_link %}
+      <hr style="border-color:var(--border,#e0e0e0);">
+      <div class="d-flex flex-column gap-2">
+        {% for cl in job.contact_links.all %}
+        <a href="{{ cl.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100" style="border-radius:20px;">
+          <i class="bi bi-link-45deg me-1"></i>{{ cl.label }}
+        </a>
+        {% endfor %}
+        {% if job.contact_link and not job.contact_links.all %}
+        <a href="{{ job.contact_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100" style="border-radius:20px;">
+          <i class="bi bi-link-45deg me-1"></i>Contact Recruiter
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Apply / Edit Application Modal -->
+{% if not is_poster %}
+<div class="modal fade" id="applyModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;border:none;">
+      <div class="modal-header border-0 pb-0">
+        <div>
+          <h5 class="modal-title fw-bold" style="color:var(--text-primary,#191919);">
+            {% if has_applied %}Edit Application{% else %}Apply to {{ job.title }}{% endif %}
+          </h5>
+          <p style="font-size:13px;color:var(--text-secondary,#666);margin:4px 0 0;">{{ job.company }} · {{ job.location }}</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'apply_job' job_id=job.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body" style="padding-top:16px;">
+
+          <p style="font-size:14px;color:var(--text-secondary,#555);margin-bottom:14px;">
+            Just attach your resume (optional) and submit — no message required.
+          </p>
+
+          <!-- Resume upload -->
+          <div class="mb-2">
+            <label class="form-label">Resume / CV <span style="color:var(--text-muted,#999);font-weight:400;">(optional)</span></label>
+            {% if has_applied and user_application.resume %}
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 12px;background:var(--bg,#f8f9fa);border-radius:6px;border:1px solid var(--border,#e0e0e0);">
+              <i class="bi bi-file-earmark-text" style="color:#0a66c2;font-size:16px;"></i>
+              <span style="font-size:13px;color:var(--text-secondary,#555);flex:1;">Current resume attached</span>
+              <a href="{{ user_application.resume.url }}" target="_blank" style="font-size:12px;color:#0a66c2;">View</a>
+            </div>
+            {% endif %}
+            <input type="file" name="resume" class="form-control" accept=".pdf,.doc,.docx,.txt" style="font-size:13px;">
+            <p class="form-text">PDF, DOC, DOCX or TXT · max 5 MB{% if has_applied and user_application.resume %} · Upload a new file to replace existing{% endif %}</p>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-send-fill me-1"></i>
+            {% if has_applied %}Update Application{% else %}Submit Application{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

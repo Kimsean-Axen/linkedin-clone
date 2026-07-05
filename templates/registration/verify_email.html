@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}Verify Your Email — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height:80vh;">
+  <div style="width:100%;max-width:440px;">
+
+    <div class="card shadow-sm" style="border-radius:12px;border:1px solid #e0e0e0;padding:36px 40px;">
+
+      <!-- Icon -->
+      <div class="text-center mb-3">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:#e8f0fe;">
+          <i class="bi bi-envelope-check" style="font-size:30px;color:#0a66c2;"></i>
+        </div>
+      </div>
+
+      <h2 class="text-center fw-bold mb-1" style="font-size:22px;">Check your email</h2>
+      <p class="text-center text-muted mb-3" style="font-size:14px;line-height:1.5;">
+        We sent a 6-digit verification code to<br>
+        <strong style="color:#191919;">{{ email }}</strong>
+      </p>
+
+      <!-- Prominent spam folder reminder (Fix #8) -->
+      <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;">
+        <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:18px;flex-shrink:0;margin-top:1px;"></i>
+        <div>
+          <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 2px;">Can't find the email?</p>
+          <p style="font-size:12px;color:#78350f;margin:0;line-height:1.5;">
+            Check your <strong>spam / junk folder</strong> — verification emails sometimes end up there. Also try promotions or updates tabs. The code expires in 15 minutes.
+          </p>
+        </div>
+      </div>
+
+      <!-- Messages rendered by base.html above; no duplicate here -->
+
+      <!-- Code entry form -->
+      <form method="post" action="{% url 'verify_email' %}" id="codeForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="verify">
+
+        <label class="form-label fw-semibold" style="font-size:14px;">Verification code</label>
+
+        <!-- Six individual digit boxes -->
+        <div class="d-flex gap-2 justify-content-center mb-3" id="digitBoxes">
+          {% for i in "123456" %}
+          <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"
+            class="digit-box form-control text-center fw-bold"
+            style="width:48px;height:56px;font-size:22px;border-radius:8px;border:2px solid #ccc;"
+            autocomplete="off">
+          {% endfor %}
+        </div>
+
+        <!-- Hidden field that collects the assembled code -->
+        <input type="hidden" name="code" id="hiddenCode">
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" style="font-size:15px;border-radius:24px;" id="verifyBtn" disabled>
+          Verify email
+        </button>
+      </form>
+
+      <div class="text-center mt-4" style="font-size:13px;color:#666;">
+        Didn't receive a code?
+        <form method="post" action="{% url 'verify_email' %}" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="resend">
+          <button type="submit" class="btn btn-link p-0 ms-1 fw-semibold" style="font-size:13px;color:#0a66c2;text-decoration:none;vertical-align:baseline;">
+            Resend code
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+    <p class="text-center mt-3" style="font-size:13px;color:#666;">
+      Wrong email?
+      <a href="{% url 'register' %}" style="color:#0a66c2;font-weight:600;">Register again</a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const boxes = Array.from(document.querySelectorAll('.digit-box'));
+  const hidden = document.getElementById('hiddenCode');
+  const btn    = document.getElementById('verifyBtn');
+
+  function getCode() {
+    return boxes.map(b => b.value).join('');
+  }
+
+  function updateBtn() {
+    const code = getCode();
+    hidden.value = code;
+    btn.disabled = code.length < 6;
+  }
+
+  boxes.forEach(function(box, i) {
+    box.addEventListener('keydown', function(e) {
+      if (e.key === 'Backspace') {
+        if (!box.value && i > 0) {
+          boxes[i - 1].value = '';
+          boxes[i - 1].focus();
+        }
+        updateBtn();
+        return;
+      }
+      if (!/^[0-9]$/.test(e.key) && e.key !== 'Tab' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+      }
+    });
+
+    box.addEventListener('input', function() {
+      box.value = box.value.replace(/[^0-9]/g, '').slice(-1);
+      if (box.value && i < boxes.length - 1) {
+        boxes[i + 1].focus();
+      }
+      updateBtn();
+    });
+
+    box.addEventListener('paste', function(e) {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+      pasted.split('').forEach(function(ch, j) {
+        if (boxes[i + j]) boxes[i + j].value = ch;
+      });
+      const next = i + pasted.length;
+      if (next < boxes.length) boxes[next].focus();
+      else boxes[boxes.length - 1].focus();
+      updateBtn();
+    });
+  });
+
+  boxes[0].focus();
+})();
+</script>
+{% endblock %}

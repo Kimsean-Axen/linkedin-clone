@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% block title %}Edit Post — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center" style="padding-top:24px;">
+  <div style="width:100%;max-width:600px;">
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <a href="{% url 'profile' user_id=user.id %}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> Back to profile</a>
+    </div>
+
+    <div class="section-card p-4">
+      <h5 style="font-size:18px;font-weight:700;margin-bottom:16px;">Edit post</h5>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="alert alert-danger mb-3" style="font-size:13px;">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          {% for field in form %}{% for error in field.errors %}<div>{{ field.label }}: {{ error }}</div>{% endfor %}{% endfor %}
+        </div>
+        {% endif %}
+
+        <textarea name="content" id="editPostContent" class="composer-textarea w-100 mb-3"
+                  rows="2" placeholder="What do you want to talk about?"
+                  style="resize:none;overflow:hidden;min-height:60px;">{{ form.content.value|default:'' }}</textarea>
+
+        <!-- Current media preview -->
+        <div id="currentMedia" class="mb-3">
+          {% if post.image %}
+          <div style="font-size:12px;color:#666;margin-bottom:6px;">Current image</div>
+          <img id="currentImage" src="{{ post.image.url }}" style="max-width:100%;border-radius:8px;display:block;">
+          {% endif %}
+          {% if post.video %}
+          <div style="font-size:12px;color:#666;margin-bottom:6px;{% if post.image %}margin-top:10px;{% endif %}">Current video</div>
+          <video id="currentVideo" controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;background:#000;display:block;">
+            <source src="{{ post.video.url }}">
+          </video>
+          {% endif %}
+        </div>
+
+        <!-- New-media preview (shown after user picks a file) -->
+        <div id="newMediaPreview" style="display:none;margin-bottom:12px;border-radius:8px;overflow:hidden;background:#f8f9fa;padding:8px;position:relative;">
+          <div style="font-size:12px;color:#0a66c2;font-weight:600;margin-bottom:6px;"><i class="bi bi-arrow-repeat"></i> Will replace current media</div>
+          <img id="newImagePreview" src="" style="max-width:100%;border-radius:6px;display:none;">
+          <video id="newVideoPreview" controls playsinline style="max-width:100%;border-radius:6px;display:none;"></video>
+          <button type="button" onclick="clearNewMedia()"
+                  style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <!-- Unified upload control -->
+        <input type="file" name="media" id="editMediaInput" accept="image/*,video/*" class="d-none">
+        <div class="mb-3">
+          <label for="editMediaInput" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
+                 style="border-radius:24px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px;">
+            <i class="bi bi-camera-video" style="color:#5f9b41;"></i>
+            <i class="bi bi-image" style="color:#378fe9;"></i>
+            <span id="mediaBtnLabel">{% if post.image or post.video %}Change media{% else %}Add photo or video{% endif %}</span>
+          </label>
+          <div style="font-size:11px;color:#999;margin-top:4px;text-align:center;">Choose an image or video — it will replace the current media.</div>
+        </div>
+
+        <div class="mb-3" style="border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;">
+          <label class="form-label fw-semibold mb-2" style="font-size:13px;">
+            <i class="bi bi-shield-check me-1" style="color:#0a66c2;"></i> Who can see this post?
+          </label>
+          <select name="visibility" id="id_visibility" class="form-select form-select-sm mb-2">
+            {% for value, label in form.fields.visibility.choices %}
+            <option value="{{ value }}" {% if form.visibility.value == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <div id="specificPeoplePanel" style="display:none;margin-top:10px;">
+            <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:8px;">
+              Select which connections can see this post:
+            </div>
+            {% if connections %}
+              <div style="max-height:280px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;padding:4px;">
+                {% for conn in connections %}
+                <label for="av_{{ conn.id }}" class="viewer-row"
+                       style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;margin:2px 0;transition:background .15s;">
+                  <input class="viewer-checkbox" type="checkbox" name="allowed_viewers"
+                         value="{{ conn.id }}" id="av_{{ conn.id }}"
+                         {% if conn in post.allowed_viewers.all %}checked{% endif %}
+                         style="display:none;">
+                  <span class="viewer-toggle" aria-hidden="true"
+                        style="width:22px;height:22px;border-radius:50%;border:2px solid #c0c0c0;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:#fff;transition:.15s;">
+                    <i class="bi bi-check2" style="color:transparent;font-size:14px;line-height:1;"></i>
+                  </span>
+                  {% if conn.profile.profile_picture %}
+                    <img src="{{ conn.profile.profile_picture.url }}" alt=""
+                         style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                  {% else %}
+                    <span style="width:40px;height:40px;border-radius:50%;background:#0a66c2;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;flex-shrink:0;">
+                      {{ conn.first_name.0|upper }}{{ conn.last_name.0|upper }}
+                    </span>
+                  {% endif %}
+                  <span style="flex:1;min-width:0;">
+                    <span style="display:block;font-size:14px;font-weight:600;color:#191919;line-height:1.2;">{{ conn.get_full_name }}</span>
+                    <span style="display:block;font-size:12px;color:#666;line-height:1.3;margin-top:2px;">
+                      {{ conn.email|default:conn.username }}{% if conn.profile.headline %} · {{ conn.profile.headline|truncatechars:40 }}{% endif %}
+                    </span>
+                  </span>
+                </label>
+                {% endfor %}
+              </div>
+              <style>
+                .viewer-row:hover { background:#f4f7fa; }
+                .viewer-row:has(.viewer-checkbox:checked) .viewer-toggle {
+                  background:#0a66c2 !important;
+                  border-color:#0a66c2 !important;
+                }
+                .viewer-row:has(.viewer-checkbox:checked) .viewer-toggle i { color:#fff !important; }
+                .viewer-row:has(.viewer-checkbox:checked) { background:#eaf3fb; }
+              </style>
+            {% else %}
+              <p style="color:#999;font-size:13px;margin:0;">You have no connections yet.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #e0e0e0;padding-top:14px;display:flex;justify-content:flex-end;gap:8px;">
+          <a href="{% url 'profile' user_id=user.id %}" class="btn btn-ghost btn-sm">Cancel</a>
+          <button type="submit" class="btn btn-primary px-4">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Visibility panel */
+const visSelect = document.getElementById('id_visibility');
+const specificPanel = document.getElementById('specificPeoplePanel');
+function updateVisibilityPanel() {
+  specificPanel.style.display = visSelect.value === 'specific' ? 'block' : 'none';
+}
+visSelect.addEventListener('change', updateVisibilityPanel);
+updateVisibilityPanel();
+
+/* Auto-grow caption */
+(function(){
+  const ta = document.getElementById('editPostContent');
+  if (!ta) return;
+  function grow(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 400) + 'px'; }
+  ta.addEventListener('input', grow);
+  grow();
+})();
+
+/* Unified media handling — one input accepts image OR video, routes to image/video field */
+const mediaInput   = document.getElementById('editMediaInput');
+const newPreview   = document.getElementById('newMediaPreview');
+const newImg       = document.getElementById('newImagePreview');
+const newVid       = document.getElementById('newVideoPreview');
+const currentMedia = document.getElementById('currentMedia');
+const mediaLabel   = document.getElementById('mediaBtnLabel');
+
+mediaInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const isVideo = file.type.startsWith('video/');
+  const isImage = file.type.startsWith('image/');
+  if (!isVideo && !isImage) {
+    alert('Please choose an image or video file.');
+    mediaInput.value = '';
+    return;
+  }
+  // Rename the field so the server treats it as image or video
+  mediaInput.setAttribute('name', isVideo ? 'video' : 'image');
+  const url = URL.createObjectURL(file);
+  newImg.style.display = isImage ? 'block' : 'none';
+  newVid.style.display = isVideo ? 'block' : 'none';
+  if (isImage) newImg.src = url;
+  if (isVideo) newVid.src = url;
+  newPreview.style.display = 'block';
+  if (currentMedia) currentMedia.style.opacity = '0.4';
+  mediaLabel.textContent = 'Choose a different file';
+});
+
+function clearNewMedia() {
+  mediaInput.value = '';
+  mediaInput.setAttribute('name', 'media');
+  newImg.src = ''; newVid.src = '';
+  newImg.style.display = 'none';
+  newVid.style.display = 'none';
+  newPreview.style.display = 'none';
+  if (currentMedia) currentMedia.style.opacity = '1';
+  mediaLabel.textContent = {% if post.image or post.video %}'Change media'{% else %}'Add photo or video'{% endif %};
+}
+</script>
+{% endblock %}

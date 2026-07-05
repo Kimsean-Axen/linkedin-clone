@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" {% if user_dark_mode %}class="dark-mode"{% endif %}>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}LinkedIn Clone{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+{% if request.user.is_authenticated and user_bg_image %}
+{% with pos_x=user_bg_position_x|default:50 pos_y=user_bg_position_y|default:50 zoom=user_bg_zoom|default:100 %}
+<div id="page-bg-layer" style="
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  background-image: url('{{ user_bg_image.url }}');
+  {% if user_bg_fit == 'tile' %}
+    background-size: auto;
+    background-repeat: repeat;
+    background-position: {{ pos_x }}% {{ pos_y }}%;
+  {% elif user_bg_fit == 'contain' %}
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: {{ pos_x }}% {{ pos_y }}%;
+  {% elif user_bg_fit == 'stretch' %}
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  {% else %}
+    background-size: {{ zoom }}%;
+    background-repeat: no-repeat;
+    background-position: {{ pos_x }}% {{ pos_y }}%;
+  {% endif %}
+  opacity: {{ user_bg_opacity }};
+"></div>
+{% endwith %}
+{% endif %}
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-md">
+  <div class="container">
+    <a class="navbar-brand" href="/feed/">
+      <span class="linkedin-logo">in</span>
+    </a>
+
+    <!-- Search -->
+    <form action="/search/" method="get" class="d-none d-md-flex ms-2">
+      <div class="search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" placeholder="Search" value="{{ request.GET.q|default:'' }}" autocomplete="off">
+      </div>
+    </form>
+
+    <!-- Nav Icons -->
+    <div class="nav-icons d-none d-md-flex ms-auto align-items-center">
+      <a href="/feed/" class="nav-link {% if request.resolver_match.url_name == 'feed' %}active{% endif %}">
+        <i class="bi bi-house-door-fill"></i>
+        <span>Home</span>
+      </a>
+      <a href="/connections/" class="nav-link position-relative {% if request.resolver_match.url_name == 'connections' %}active{% endif %}">
+        <i class="bi bi-people-fill"></i>
+        <span>Network</span>
+        {% if pending_requests %}<span class="notif-badge">{{ pending_requests }}</span>{% endif %}
+      </a>
+      <a href="/jobs/" class="nav-link {% if request.resolver_match.url_name == 'jobs' %}active{% endif %}">
+        <i class="bi bi-briefcase-fill"></i>
+        <span>Jobs</span>
+      </a>
+      <a href="/messages/" class="nav-link position-relative {% if request.resolver_match.url_name == 'messages_list' %}active{% endif %}">
+        <i class="bi bi-chat-dots-fill"></i>
+        <span>Messaging</span>
+        {% if unread_messages %}<span class="notif-badge">{{ unread_messages }}</span>{% endif %}
+      </a>
+      <a href="/notifications/" class="nav-link position-relative {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+        <i class="bi bi-bell-fill"></i>
+        <span>Alerts</span>
+        {% if unread_notifications %}<span class="notif-badge">{{ unread_notifications }}</span>{% endif %}
+      </a>
+
+      <!-- Separator -->
+      <div style="width:1px;height:32px;background:var(--border);margin:0 8px;"></div>
+
+      <!-- Dark Mode Toggle -->
+      <form method="post" action="/toggle-dark-mode/" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn-icon-round" title="{% if user_dark_mode %}Switch to light mode{% else %}Switch to dark mode{% endif %}" style="font-size:18px;">
+          {% if user_dark_mode %}<i class="bi bi-sun-fill" style="color:#f59e0b;"></i>{% else %}<i class="bi bi-moon-fill"></i>{% endif %}
+        </button>
+      </form>
+
+      <!-- Background Edit -->
+      <a href="/background/edit/" class="btn-icon-round" title="Customize background" style="font-size:17px;">
+        <i class="bi bi-image"></i>
+      </a>
+
+      <!-- Profile Dropdown -->
+      <div class="profile-nav-item dropdown">
+        <button class="profile-nav-btn dropdown-toggle d-flex align-items-center gap-1" type="button" id="profileMenu" data-bs-toggle="dropdown" aria-expanded="false">
+          {% if request.user.is_authenticated and request.user.profile.profile_picture %}
+            <img src="{{ request.user.profile.profile_picture.url }}" class="av av-xs rounded-circle" style="width:28px;height:28px;" alt="">
+          {% else %}
+            <span class="av av-xs" style="width:28px;height:28px;font-size:11px;display:inline-flex;">
+              {{ request.user.first_name.0|upper }}{{ request.user.last_name.0|upper }}
+            </span>
+          {% endif %}
+          <span style="font-size:12px;line-height:1;">Me</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileMenu">
+          {% if request.user.is_authenticated %}
+          <li>
+            <a class="dropdown-item" href="/profile/{{ request.user.id }}/">
+              <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+                {% if request.user.profile.profile_picture %}
+                  <img src="{{ request.user.profile.profile_picture.url }}" class="av av-xs rounded-circle" style="width:40px;height:40px;" alt="">
+                {% else %}
+                  <span class="av" style="width:40px;height:40px;font-size:14px;display:inline-flex;">{{ request.user.first_name.0|upper }}{{ request.user.last_name.0|upper }}</span>
+                {% endif %}
+                <div>
+                  <div style="font-weight:700;font-size:13px;color:var(--text-primary);">{{ request.user.get_full_name }}</div>
+                  <div style="font-size:11px;color:var(--text-secondary);">View profile</div>
+                </div>
+              </div>
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="/profile/edit/"><i class="bi bi-pencil me-2"></i>Edit profile</a></li>
+          <li><a class="dropdown-item" href="/background/edit/"><i class="bi bi-image me-2"></i>Customize background</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="/logout/"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Mobile menu button -->
+    <button class="navbar-toggler ms-auto border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile nav -->
+<div class="collapse" id="mobileNav" style="background:var(--bg-card,#fff);border-bottom:1px solid var(--border);padding:8px 16px;">
+  <form action="/search/" method="get" class="mb-2">
+    <div class="search-wrap" style="width:100%;">
+      <i class="bi bi-search"></i>
+      <input type="text" name="q" placeholder="Search">
+    </div>
+  </form>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="/feed/" class="btn btn-ghost btn-sm">Home</a>
+    <a href="/connections/" class="btn btn-ghost btn-sm">Network</a>
+    <a href="/jobs/" class="btn btn-ghost btn-sm">Jobs</a>
+    <a href="/messages/" class="btn btn-ghost btn-sm">Messages</a>
+    <a href="/profile/{{ request.user.id }}/" class="btn btn-ghost btn-sm">Profile</a>
+    <a href="/logout/" class="btn btn-ghost btn-sm text-danger">Sign out</a>
+  </div>
+</div>
+
+<!-- Flash messages — rendered once here only -->
+{% if messages %}
+<div class="container" style="margin-top:12px;">
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" style="font-size:14px;margin-bottom:6px;" role="alert">
+    {% if msg.tags == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% elif msg.tags == 'error' or msg.tags == 'danger' %}<i class="bi bi-exclamation-circle-fill me-2"></i>{% elif msg.tags == 'warning' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>{% else %}<i class="bi bi-info-circle-fill me-2"></i>{% endif %}
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<main class="pt-3 pb-5">
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

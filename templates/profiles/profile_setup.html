@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Set Up Your Profile — LinkedIn Clone{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-start" style="min-height:75vh;padding-top:32px;">
+  <div style="width:100%;max-width:520px;">
+
+    <!-- Progress bar -->
+    <div class="mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span style="font-size:13px;color:#666;">Step {{ step_index }} of {{ total_steps }}</span>
+        <span style="font-size:13px;color:#0a66c2;font-weight:600;">{{ step_label }}</span>
+      </div>
+      <div style="height:5px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:{% widthratio step_index total_steps 100 %}%;background:linear-gradient(90deg,#0a66c2,#004182);border-radius:4px;transition:width .4s ease;"></div>
+      </div>
+    </div>
+
+    <div class="section-card" style="border-radius:16px;padding:40px 40px 36px;">
+
+      <!-- STEP 1: Profile Picture -->
+      {% if step == 'profile_pic' %}
+      <div class="text-center mb-4">
+        <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#004182);display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <i class="bi bi-person-circle" style="font-size:40px;color:#fff;"></i>
+        </div>
+        <h2 class="fw-bold mb-1" style="font-size:24px;">Add a profile photo</h2>
+        <p class="text-muted mb-0" style="font-size:14px;line-height:1.6;">Members with a profile photo get up to 21x more views. Choose a clear, friendly photo.</p>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Photo preview area -->
+        <div class="text-center mb-4">
+          <div id="photo-preview-wrap" style="display:inline-block;position:relative;">
+            <div id="photo-placeholder" style="width:140px;height:140px;border-radius:50%;background:#f0f4f8;display:flex;align-items:center;justify-content:center;border:3px dashed #c9cdd2;margin:0 auto;">
+              <i class="bi bi-camera" style="font-size:36px;color:#999;"></i>
+            </div>
+            <img id="photo-preview-img" src="" alt="" style="width:140px;height:140px;border-radius:50%;object-fit:cover;display:none;border:3px solid #0a66c2;">
+          </div>
+          <div class="mt-3">
+            <label for="{{ profile_form.profile_picture.id_for_label }}" class="btn btn-outline-primary">
+              <i class="bi bi-upload me-1"></i> Choose photo
+            </label>
+            {{ profile_form.profile_picture }}
+          </div>
+          <p style="font-size:12px;color:#999;margin-top:8px;">JPG, PNG or GIF · Max 5 MB</p>
+        </div>
+
+        <div class="d-flex gap-3 mt-2">
+          <button type="submit" name="skip" class="btn btn-outline-secondary flex-fill" style="border-radius:24px;padding:12px;">
+            Skip for now
+          </button>
+          <button type="submit" class="btn btn-primary flex-fill" style="border-radius:24px;padding:12px;" id="continue-btn">
+            Continue <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- STEP 2: Cover Photo -->
+      {% elif step == 'cover_photo' %}
+      <div class="text-center mb-4">
+        <div style="width:80px;height:80px;border-radius:12px;background:linear-gradient(135deg,#0a66c2,#004182);display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <i class="bi bi-image" style="font-size:36px;color:#fff;"></i>
+        </div>
+        <h2 class="fw-bold mb-1" style="font-size:24px;">Add a cover photo</h2>
+        <p class="text-muted mb-0" style="font-size:14px;line-height:1.6;">A cover photo helps personalize your profile and shows your personality or brand.</p>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Cover photo preview area -->
+        <div class="mb-4">
+          <div id="cover-preview-wrap" style="width:100%;height:120px;border-radius:12px;background:linear-gradient(135deg,#0a66c2,#004182);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;border:2px dashed #c9cdd2;">
+            <div id="cover-placeholder" style="text-align:center;color:rgba(255,255,255,0.8);">
+              <i class="bi bi-panorama" style="font-size:32px;"></i>
+              <p style="font-size:13px;margin:4px 0 0;">Your cover photo will appear here</p>
+            </div>
+            <img id="cover-preview-img" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;">
+          </div>
+          <div class="text-center mt-3">
+            <label for="{{ profile_form.cover_photo.id_for_label }}" class="btn btn-outline-primary">
+              <i class="bi bi-upload me-1"></i> Choose cover photo
+            </label>
+            {{ profile_form.cover_photo }}
+          </div>
+          <p style="font-size:12px;color:#999;text-align:center;margin-top:8px;">Recommended: 1584 × 396 px · JPG or PNG</p>
+        </div>
+
+        <div class="d-flex gap-3 mt-2">
+          <button type="submit" name="skip" class="btn btn-outline-secondary flex-fill" style="border-radius:24px;padding:12px;">
+            Skip for now
+          </button>
+          <button type="submit" name="finish" class="btn btn-primary flex-fill" style="border-radius:24px;padding:12px;">
+            Finish setup <i class="bi bi-check-lg ms-1"></i>
+          </button>
+        </div>
+      </form>
+      {% endif %}
+
+    </div>
+
+    <!-- Step dots -->
+    <div class="d-flex justify-content-center gap-2 mt-4">
+      {% for s in steps %}
+      <div style="width:{% if s == step %}20{% else %}8{% endif %}px;height:8px;border-radius:4px;background:{% if s == step %}#0a66c2{% else %}#d0d0d0{% endif %};transition:all .3s;"></div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  #id_profile_picture, #id_cover_photo { display: none !important; }
+</style>
+<script>
+  (function() {
+    var picInput = document.getElementById('id_profile_picture');
+    var coverInput = document.getElementById('id_cover_photo');
+
+    if (picInput) {
+      picInput.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var placeholder = document.getElementById('photo-placeholder');
+          var img = document.getElementById('photo-preview-img');
+          if (placeholder) placeholder.style.display = 'none';
+          if (img) { img.src = e.target.result; img.style.display = 'block'; }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (coverInput) {
+      coverInput.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var placeholder = document.getElementById('cover-placeholder');
+          var img = document.getElementById('cover-preview-img');
+          if (placeholder) placeholder.style.display = 'none';
+          if (img) { img.src = e.target.result; img.style.display = 'block'; }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  })();
+</script>
+{% endblock %}
