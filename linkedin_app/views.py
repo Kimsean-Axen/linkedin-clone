@@ -57,20 +57,6 @@ def _send_verification_email(user, code):
         timeout=15,
     )
     logger.info('Brevo response: %s %s', response.status_code, response.text)
-    )
-    logger.info('Attempting to send verification email to %s via %s',
-                user.email, django_settings.EMAIL_BACKEND)
-    requests.post(
-        'https://api.resend.com/emails',
-        headers={'Authorization': f'Bearer {django_settings.RESEND_API_KEY}'},
-        json={
-            'from': 'onboarding@resend.dev',
-            'to': [user.email],
-            'subject': subject,
-            'text': body,
-        },
-        timeout=15,
-    )
 
 
 def _get_connected_ids(user):
